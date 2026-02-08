@@ -1,95 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 
-/* ───────────── constants ───────────── */
-const VR_LINK = "#vr-museum"; // замените на реальную ссылку
-
-const AUTHORS = [
-  "Имя Автора 1",
-  "Имя Автора 2",
-  "Имя Автора 3",
-];
-
-const QUOTE = {
-  text: "«Здесь будет ваша цитата»",
-  author: "— Автор цитаты",
-};
-
-/* timeline data — проверенные исторические факты */
-const TIMELINE: TimelineEvent[] = [
-  {
-    year: "1723",
-    title: "Основание османской крепости",
-    text: "Османская империя возводит крепость Анапа на месте древних укреплений на побережье Чёрного моря. Крепость становится важнейшим опорным пунктом для контроля над Северо-Западным Кавказом и работорговли в регионе.",
-  },
-  {
-    year: "1781–1782",
-    title: "Укрепление крепости",
-    text: "По проекту французских военных инженеров крепость Анапа значительно усиливается: возводятся новые бастионы, стены достигают высоты 8 метров. Гарнизон насчитывает до 10 000 человек, а крепость становится одной из мощнейших на побережье.",
-  },
-  {
-    year: "1788",
-    title: "Первый штурм",
-    text: "Во время русско-турецкой войны 1787–1791 годов отряд генерал-аншефа П. А. Текели предпринимает первую попытку взять Анапу. Однако из-за недостатка сил и отсутствия поддержки с моря штурм заканчивается неудачей.",
-  },
-  {
-    year: "1791",
-    title: "Взятие крепости Гудовичем",
-    text: "22 июня 1791 года генерал-аншеф И. В. Гудович берёт Анапу решительным штурмом. Русские войска, несмотря на ожесточённое сопротивление гарнизона, врываются в крепость. Захвачено более 100 орудий и взято в плен около 13 000 человек. По Ясскому мирному договору 1792 года крепость возвращена Османской империи.",
-  },
-  {
-    year: "1807–1809",
-    title: "Повторные штурмы",
-    text: "В ходе русско-турецкой войны 1806–1812 годов контр-адмирал С. А. Пустошкин в 1807 году занимает Анапу с моря, но русские войска вскоре оставляют крепость. В 1809 году крепость вновь взята, но по Бухарестскому миру 1812 года снова возвращена Турции.",
-  },
-  {
-    year: "1828",
-    title: "Окончательное взятие",
-    text: "Во время русско-турецкой войны 1828–1829 годов, 12 июня 1828 года, войска под командованием вице-адмирала А. С. Грейга и князя А. С. Меншикова берут Анапу после осады с суши и моря. По Адрианопольскому мирному договору 1829 года Анапа окончательно отходит к Российской империи.",
-  },
-  {
-    year: "1846–1854",
-    title: "Русская Анапа",
-    text: "Анапа становится русским городом-крепостью. Строятся новые укрепления, храмы, развивается инфраструктура. Во время Крымской войны 1853–1856 годов гарнизон сам разрушает укрепления, чтобы они не достались англо-французскому флоту.",
-  },
-  {
-    year: "Наши дни",
-    title: "Русские ворота — памятник истории",
-    text: "До наших дней сохранились «Русские ворота» — остаток османской крепости, признанный памятником архитектуры. Сегодня это один из главных символов Анапы, напоминающий о героических событиях русско-турецких войн.",
-  },
-];
-
-const CONTROLS = [
-  {
-    icon: "🖱️",
-    title: "Мышь / Тачпад",
-    desc: "Зажмите левую кнопку мыши и двигайте для вращения камеры. Колесо мыши для приближения и отдаления.",
-  },
-  {
-    icon: "⌨️",
-    title: "Клавиатура",
-    desc: "W / A / S / D или стрелки для перемещения по музею. Пробел — подняться, Shift — опуститься.",
-  },
-  {
-    icon: "📱",
-    title: "Мобильное устройство",
-    desc: "Проведите пальцем по экрану для вращения обзора. Используйте жест «щипок» для масштабирования.",
-  },
-  {
-    icon: "🥽",
-    title: "VR-шлем",
-    desc: "Нажмите кнопку VR в браузере. Используйте контроллеры для телепортации и взаимодействия с объектами.",
-  },
-];
-
-/* ───────────── types ───────────── */
-interface TimelineEvent {
-  year: string;
-  title: string;
-  text: string;
-}
-
-/* ───────────── hook: intersection observer ───────────── */
-function useInView(threshold = 0.15) {
+/* ───────────────────── Intersection Observer Hook ───────────────────── */
+function useInView(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -97,7 +9,12 @@ function useInView(threshold = 0.15) {
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      ([e]) => {
+        if (e.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
       { threshold }
     );
     obs.observe(el);
@@ -107,13 +24,23 @@ function useInView(threshold = 0.15) {
   return { ref, visible };
 }
 
-/* ───────────── small components ───────────── */
-function FadeIn({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+/* ───────────────────── Reveal wrapper ───────────────────── */
+function Reveal({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
   const { ref, visible } = useInView();
   return (
     <div
       ref={ref}
-      className={`transition-all duration-700 ease-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"} ${className}`}
+      className={`transition-all duration-700 ease-out ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+      } ${className}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
@@ -121,300 +48,539 @@ function FadeIn({ children, className = "", delay = 0 }: { children: React.React
   );
 }
 
-/* ───────────── nav ───────────── */
-function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
+/* ───────────────────── Particle background ───────────────────── */
+function Particles({ count = 20 }: { count?: number }) {
+  const items = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        id: i,
+        left: `${Math.random() * 100}%`,
+        size: 1 + Math.random() * 2,
+        duration: 8 + Math.random() * 12,
+        delay: Math.random() * 10,
+        opacity: 0.2 + Math.random() * 0.5,
+      })),
+    [count]
+  );
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {items.map((p) => (
+        <span
+          key={p.id}
+          className="particle"
+          style={{
+            left: p.left,
+            bottom: "-10px",
+            width: p.size,
+            height: p.size,
+            opacity: p.opacity,
+            animationDuration: `${p.duration}s`,
+            animationDelay: `${p.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ───────────────────── VR icon (headset) ───────────────────── */
+function VRIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2 10a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4l-2 2-2-2H4a2 2 0 0 1-2-2v-4z" />
+      <circle cx="8" cy="12" r="2" />
+      <circle cx="16" cy="12" r="2" />
+    </svg>
+  );
+}
+
+/* ───────────────────── Data ───────────────────── */
+const HISTORY = [
+  {
+    year: "1783–1784",
+    title: "Строительство крепости",
+    text: "После присоединения Крыма к Российской империи в 1783 году Османская империя укрепляет свои позиции на Кавказском побережье. В 1783–1784 годах по проекту французских военных инженеров возводится мощная крепость Анапа — ключевой оборонительный узел, контролирующий северо-восточное побережье Чёрного моря.",
+  },
+  {
+    year: "22 июня 1791",
+    title: "Штурм Гудовича",
+    text: "В ходе русско-турецкой войны 1787–1791 годов генерал-аншеф И. В. Гудович предпринимает решительный штурм крепости Анапа. После ожесточённого боя гарнизон капитулирует. Однако по условиям Ясского мирного договора (1791) крепость возвращена Османской империи.",
+  },
+  {
+    year: "1807",
+    title: "Второе взятие",
+    text: "Во время русско-турецкой войны 1806–1812 годов русские войска при поддержке Черноморского флота вновь занимают Анапу. Тем не менее, по условиям Бухарестского мирного договора 1812 года, крепость снова передаётся Турции.",
+  },
+  {
+    year: "12 июня 1828",
+    title: "Окончательное освобождение",
+    text: "В ходе русско-турецкой войны 1828–1829 годов русские войска в третий и последний раз берут крепость Анапа. По Адрианопольскому мирному договору 1829 года Анапа навсегда входит в состав Российской империи.",
+  },
+  {
+    year: "Наши дни",
+    title: "«Русские ворота» — памятник истории",
+    text: "До наших дней сохранился единственный фрагмент турецкой крепости — ворота, получившие название «Русские ворота» в честь освобождения города. Сегодня это памятник истории и одна из главных достопримечательностей Анапы.",
+  },
+];
+
+const CONTROLS = [
+  {
+    icon: "🖱️",
+    title: "Осмотр",
+    desc: "Зажмите левую кнопку мыши и перемещайте курсор, чтобы осматривать пространство вокруг себя",
+  },
+  {
+    icon: "⌨️",
+    title: "Перемещение",
+    desc: "Используйте клавиши W, A, S, D или стрелки для передвижения по территории крепости",
+  },
+  {
+    icon: "🎯",
+    title: "Экспонаты",
+    desc: "Наведите курсор на светящиеся информационные точки и нажмите ЛКМ, чтобы узнать подробности",
+  },
+  {
+    icon: "🥽",
+    title: "VR-режим",
+    desc: "Подключите VR-шлем и нажмите кнопку «Enter VR» для полного погружения в виртуальную реальность",
+  },
+];
+
+// Placeholder — замените на реальные данные
+const AUTHORS = ["Имя Автора 1", "Имя Автора 2", "Имя Автора 3"];
+const QUOTE_TEXT = "Цитата будет добавлена авторами проекта";
+const QUOTE_AUTHOR = "Автор цитаты";
+
+const NAV_LINKS: [string, string][] = [
+  ["#history", "История"],
+  ["#controls", "Управление"],
+  ["#authors", "Авторы"],
+];
+
+/* ───────────────────── App ───────────────────── */
+export function App() {
+  const [scrollY, setScrollY] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 40);
+    const h = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", h, { passive: true });
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  const linkClass = "relative text-sm font-medium tracking-wide transition-colors hover:text-amber-400";
-
-  const scrollTo = useCallback((id: string) => {
-    setMenuOpen(false);
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  const navSolid = scrollY > 60;
 
   return (
-    <nav className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${scrolled ? "bg-stone-900/90 shadow-lg backdrop-blur-md" : "bg-transparent"}`}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <button onClick={() => scrollTo("hero")} className="font-['Playfair_Display'] text-xl font-bold text-amber-400 tracking-wider">
-          ⚔ Крепость Анапа
-        </button>
-
-        {/* desktop */}
-        <div className="hidden gap-8 md:flex text-stone-200">
-          <button onClick={() => scrollTo("history")} className={linkClass}>История</button>
-          <button onClick={() => scrollTo("controls")} className={linkClass}>Управление</button>
-          <button onClick={() => scrollTo("authors")} className={linkClass}>Авторы</button>
-          <a href={VR_LINK} className="rounded-full bg-amber-500 px-5 py-2 text-sm font-semibold text-stone-900 shadow-lg shadow-amber-500/25 transition hover:bg-amber-400 hover:shadow-amber-400/40">
-            Войти в VR
+    <div className="min-h-screen bg-[#060B18] text-gray-100 font-sans selection:bg-amber-500/30 selection:text-white">
+      {/* ═══════════ NAVBAR ═══════════ */}
+      <nav
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+          navSolid
+            ? "bg-[#060B18]/90 backdrop-blur-xl shadow-lg shadow-black/30 border-b border-white/5"
+            : "bg-transparent"
+        }`}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          {/* Logo */}
+          <a href="#hero" className="group flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 text-lg font-extrabold text-[#060B18] shadow-lg shadow-amber-500/20 transition-shadow group-hover:shadow-amber-500/40">
+              А
+            </div>
+            <span className="hidden text-lg font-semibold tracking-tight sm:block">
+              <span className="text-amber-400">VR</span> Музей Анапа
+            </span>
           </a>
-        </div>
 
-        {/* burger */}
-        <button className="flex flex-col gap-1.5 md:hidden" onClick={() => setMenuOpen(o => !o)} aria-label="Меню">
-          <span className={`h-0.5 w-6 bg-stone-200 transition-transform ${menuOpen ? "translate-y-2 rotate-45" : ""}`} />
-          <span className={`h-0.5 w-6 bg-stone-200 transition-opacity ${menuOpen ? "opacity-0" : ""}`} />
-          <span className={`h-0.5 w-6 bg-stone-200 transition-transform ${menuOpen ? "-translate-y-2 -rotate-45" : ""}`} />
-        </button>
-      </div>
-
-      {/* mobile menu */}
-      <div className={`overflow-hidden transition-all duration-300 md:hidden ${menuOpen ? "max-h-64" : "max-h-0"}`}>
-        <div className="flex flex-col gap-4 bg-stone-900/95 px-6 pb-6 text-stone-200 backdrop-blur-md">
-          <button onClick={() => scrollTo("history")} className={linkClass}>История</button>
-          <button onClick={() => scrollTo("controls")} className={linkClass}>Управление</button>
-          <button onClick={() => scrollTo("authors")} className={linkClass}>Авторы</button>
-          <a href={VR_LINK} className="rounded-full bg-amber-500 px-5 py-2.5 text-center text-sm font-semibold text-stone-900 shadow-lg transition hover:bg-amber-400">
-            Войти в VR
-          </a>
-        </div>
-      </div>
-    </nav>
-  );
-}
-
-/* ───────────── hero ───────────── */
-function Hero() {
-  return (
-    <section id="hero" className="relative flex min-h-screen items-center justify-center overflow-hidden bg-stone-900">
-      {/* bg pattern */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(180,130,60,.12)_0%,_transparent_70%)]" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2260%22%20height%3D%2260%22%3E%3Cpath%20d%3D%22M0%200h60v60H0z%22%20fill%3D%22none%22%20stroke%3D%22rgba(255%2C255%2C255%2C.03)%22%20stroke-width%3D%221%22%2F%3E%3C%2Fsvg%3E')] opacity-60" />
-        {/* decorative gradient lines */}
-        <div className="absolute left-1/2 top-0 h-full w-px bg-gradient-to-b from-transparent via-amber-500/20 to-transparent" />
-      </div>
-
-      <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
-        <FadeIn>
-          <p className="mb-4 text-sm font-medium uppercase tracking-[0.3em] text-amber-400/80">Виртуальный музей</p>
-        </FadeIn>
-
-        <FadeIn delay={150}>
-          <h1 className="font-['Playfair_Display'] text-5xl font-bold leading-tight text-stone-100 sm:text-6xl lg:text-7xl">
-            Крепость <span className="text-amber-400">Анапа</span>
-          </h1>
-        </FadeIn>
-
-        <FadeIn delay={300}>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-stone-400 sm:text-xl">
-            Погрузитесь в эпоху русско-турецких войн и исследуйте легендарную крепость в формате виртуальной реальности.
-          </p>
-        </FadeIn>
-
-        <FadeIn delay={450}>
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          {/* Desktop links */}
+          <div className="hidden items-center gap-8 md:flex">
+            {NAV_LINKS.map(([href, label]) => (
+              <a
+                key={href}
+                href={href}
+                className="text-sm text-gray-400 transition-colors hover:text-amber-400"
+              >
+                {label}
+              </a>
+            ))}
             <a
-              href={VR_LINK}
-              className="group relative inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-4 text-lg font-semibold text-stone-900 shadow-xl shadow-amber-500/25 transition-all hover:shadow-2xl hover:shadow-amber-500/40 hover:scale-105"
+              href="#enter-vr"
+              className="glow-button rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2.5 text-sm font-bold text-[#060B18] shadow-lg shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 hover:shadow-amber-500/40"
             >
-              <span>Войти в музей</span>
-              <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+              Войти в музей
             </a>
-            <button
-              onClick={() => document.getElementById("history")?.scrollIntoView({ behavior: "smooth" })}
-              className="inline-flex items-center gap-2 rounded-full border border-stone-600 px-8 py-4 text-lg font-medium text-stone-300 transition-all hover:border-amber-500/50 hover:text-amber-400"
-            >
-              Узнать историю
-              <svg className="h-4 w-4 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-            </button>
           </div>
-        </FadeIn>
 
-        {/* quote */}
-        <FadeIn delay={600}>
-          <blockquote className="mx-auto mt-16 max-w-xl border-l-2 border-amber-500/40 pl-6 text-left">
-            <p className="font-['Playfair_Display'] text-lg italic leading-relaxed text-stone-400">{QUOTE.text}</p>
-            <cite className="mt-3 block text-sm font-medium not-italic text-amber-500/70">{QUOTE.author}</cite>
-          </blockquote>
-        </FadeIn>
-      </div>
-
-      {/* scroll hint */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-        <div className="flex h-10 w-6 items-start justify-center rounded-full border-2 border-stone-600 p-1">
-          <div className="h-2 w-1 animate-bounce rounded-full bg-amber-400" />
+          {/* Burger */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-2 text-gray-400 hover:text-white md:hidden"
+            aria-label="Меню"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              {menuOpen ? (
+                <path d="M18 6 6 18M6 6l12 12" />
+              ) : (
+                <>
+                  <path d="M4 6h16" />
+                  <path d="M4 12h16" />
+                  <path d="M4 18h16" />
+                </>
+              )}
+            </svg>
+          </button>
         </div>
-      </div>
-    </section>
-  );
-}
 
-/* ───────────── history timeline ───────────── */
-function HistorySection() {
-  return (
-    <section id="history" className="relative bg-stone-950 py-24 sm:py-32">
-      {/* background decoration */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(180,130,60,.06)_0%,_transparent_60%)]" />
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div className="border-t border-white/5 bg-[#0B1120]/98 px-6 py-4 backdrop-blur-xl md:hidden">
+            {NAV_LINKS.map(([href, label]) => (
+              <a
+                key={href}
+                href={href}
+                onClick={() => setMenuOpen(false)}
+                className="block py-3 text-gray-300 transition-colors hover:text-amber-400"
+              >
+                {label}
+              </a>
+            ))}
+            <a
+              href="#enter-vr"
+              onClick={() => setMenuOpen(false)}
+              className="mt-3 block rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 py-3 text-center font-bold text-[#060B18]"
+            >
+              Войти в музей
+            </a>
+          </div>
+        )}
+      </nav>
 
-      <div className="relative mx-auto max-w-6xl px-6">
-        <FadeIn>
-          <p className="text-center text-sm font-medium uppercase tracking-[0.25em] text-amber-500/70">Хронология событий</p>
-          <h2 className="mt-3 text-center font-['Playfair_Display'] text-4xl font-bold text-stone-100 sm:text-5xl">
-            История <span className="text-amber-400">крепости</span>
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-center text-stone-400">
-            Крепость Анапа — ключевой форпост Османской империи на Чёрном море, за который велись ожесточённые сражения на протяжении более ста лет.
-          </p>
-        </FadeIn>
+      {/* ═══════════ HERO ═══════════ */}
+      <section
+        id="hero"
+        className="relative flex min-h-screen items-center justify-center overflow-hidden"
+      >
+        {/* BG layers */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#060B18] via-[#0a1628] to-[#060B18]" />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 25% 40%, rgba(217,164,48,0.08) 0%, transparent 55%), radial-gradient(circle at 75% 60%, rgba(217,164,48,0.06) 0%, transparent 45%)",
+              transform: `translateY(${scrollY * 0.2}px)`,
+            }}
+          />
+          {/* Subtle grid */}
+          <div
+            className="absolute inset-0 opacity-[0.025]"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)",
+              backgroundSize: "80px 80px",
+            }}
+          />
+          <Particles count={24} />
+        </div>
 
-        {/* timeline */}
-        <div className="relative mt-16">
-          {/* vertical line */}
-          <div className="absolute left-4 top-0 hidden h-full w-px bg-gradient-to-b from-amber-500/50 via-amber-500/20 to-transparent sm:left-1/2 sm:block" />
+        <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
+          <Reveal>
+            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/5 px-4 py-2 text-sm text-amber-400">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />
+              Виртуальная реальность
+            </div>
+          </Reveal>
 
-          <div className="space-y-12 sm:space-y-16">
-            {TIMELINE.map((ev, i) => (
-              <FadeIn key={ev.year} delay={i * 80}>
-                <div className={`relative flex flex-col gap-6 sm:flex-row ${i % 2 === 1 ? "sm:flex-row-reverse" : ""}`}>
-                  {/* dot on line */}
-                  <div className="absolute left-4 top-1 hidden h-4 w-4 -translate-x-1/2 rounded-full border-2 border-amber-500 bg-stone-950 sm:left-1/2 sm:block" />
+          <Reveal delay={120}>
+            <h1 className="mb-6 text-5xl font-extrabold leading-[1.08] tracking-tight sm:text-7xl lg:text-8xl">
+              <span className="bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
+                Крепость
+              </span>
+              <br />
+              <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-600 bg-clip-text text-transparent">
+                Анапа
+              </span>
+            </h1>
+          </Reveal>
 
-                  {/* content card */}
-                  <div className={`sm:w-1/2 ${i % 2 === 0 ? "sm:pr-12 sm:text-right" : "sm:pl-12"}`}>
-                    <span className="inline-block rounded-full bg-amber-500/10 px-4 py-1 font-['Playfair_Display'] text-lg font-bold text-amber-400">
-                      {ev.year}
-                    </span>
-                    <h3 className="mt-3 text-xl font-semibold text-stone-100">{ev.title}</h3>
-                    <p className="mt-2 leading-relaxed text-stone-400">{ev.text}</p>
+          <Reveal delay={240}>
+            <p className="mx-auto mb-12 max-w-2xl text-lg leading-relaxed text-gray-400 sm:text-xl">
+              Погрузитесь в историю русско-турецких войн XVIII–XIX веков
+              и&nbsp;исследуйте легендарную крепость в виртуальной реальности
+            </p>
+          </Reveal>
+
+          <Reveal delay={360}>
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <a
+                href="#enter-vr"
+                className="glow-button group inline-flex items-center gap-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-9 py-4 text-lg font-bold text-[#060B18] shadow-2xl shadow-amber-500/25 transition-all hover:scale-[1.04] hover:from-amber-400 hover:to-amber-500 hover:shadow-amber-500/40"
+              >
+                <VRIcon size={24} />
+                Войти в VR музей
+              </a>
+              <a
+                href="#history"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-8 py-4 font-medium text-gray-300 transition-all hover:border-white/20 hover:bg-white/5"
+              >
+                Узнать историю
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M12 5v14M19 12l-7 7-7-7" />
+                </svg>
+              </a>
+            </div>
+          </Reveal>
+        </div>
+
+        {/* Scroll hint */}
+        <div className="absolute bottom-8 left-1/2 flex -translate-x-1/2 animate-bounce flex-col items-center gap-2 text-xs text-gray-600">
+          <span>Листайте вниз</span>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M12 5v14M19 12l-7 7-7-7" />
+          </svg>
+        </div>
+      </section>
+
+      {/* ═══════════ QUOTE ═══════════ */}
+      <section className="relative py-24 sm:py-32">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060B18] via-[#0a1225] to-[#060B18]" />
+        <div className="relative z-10 mx-auto max-w-4xl px-6">
+          <Reveal>
+            <blockquote className="relative">
+              <span className="absolute -left-2 -top-8 select-none font-serif text-7xl text-amber-500/15 sm:-left-6 sm:text-9xl">
+                «
+              </span>
+              <p className="pl-8 text-xl font-light italic leading-relaxed text-gray-200 sm:pl-14 sm:text-2xl lg:text-3xl">
+                {QUOTE_TEXT}
+              </p>
+              <footer className="mt-6 pl-8 text-gray-500 sm:pl-14">
+                —{" "}
+                <cite className="not-italic text-amber-400/70">
+                  {QUOTE_AUTHOR}
+                </cite>
+              </footer>
+            </blockquote>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ═══════════ HISTORY ═══════════ */}
+      <section id="history" className="relative py-24 sm:py-32">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060B18] via-[#080e1f] to-[#060B18]" />
+
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
+          {/* Header */}
+          <Reveal>
+            <div className="mb-16 text-center sm:mb-20">
+              <span className="text-sm font-semibold uppercase tracking-widest text-amber-400">
+                Хроника событий
+              </span>
+              <h2 className="mt-4 mb-6 text-3xl font-bold sm:text-4xl lg:text-5xl">
+                История{" "}
+                <span className="text-amber-400">крепости&nbsp;Анапа</span>
+              </h2>
+              <p className="mx-auto max-w-2xl text-lg text-gray-400">
+                Крепость Анапа трижды переходила из рук в руки в ходе
+                русско-турецких войн, прежде чем окончательно войти в состав
+                Российской империи
+              </p>
+            </div>
+          </Reveal>
+
+          {/* Timeline */}
+          <div className="relative">
+            {/* Vertical line */}
+            <div className="absolute left-5 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-amber-500/30 to-transparent sm:left-1/2 sm:-translate-x-px" />
+
+            {HISTORY.map((ev, i) => {
+              const isLeft = i % 2 === 0;
+              return (
+                <Reveal key={i} delay={i * 80}>
+                  <div
+                    className={`relative mb-14 flex flex-col sm:mb-16 sm:flex-row ${
+                      isLeft ? "sm:flex-row" : "sm:flex-row-reverse"
+                    }`}
+                  >
+                    {/* Dot */}
+                    <div className="absolute left-5 z-10 mt-1.5 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-4 border-[#060B18] bg-amber-500 shadow-lg shadow-amber-500/40 sm:left-1/2" />
+
+                    {/* Card */}
+                    <div
+                      className={`pl-12 sm:w-1/2 sm:pl-0 ${
+                        isLeft ? "sm:pr-16 sm:text-right" : "sm:pl-16"
+                      }`}
+                    >
+                      <span className="mb-3 inline-block rounded-md bg-amber-500/10 px-3 py-1 text-sm font-bold text-amber-400">
+                        {ev.year}
+                      </span>
+                      <h3 className="mb-3 text-xl font-bold sm:text-2xl">
+                        {ev.title}
+                      </h3>
+                      <p className="leading-relaxed text-gray-400">{ev.text}</p>
+                    </div>
+
+                    <div className="hidden sm:block sm:w-1/2" />
                   </div>
+                </Reveal>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
-                  {/* spacer for opposite side */}
-                  <div className="hidden sm:block sm:w-1/2" />
+      {/* ═══════════ CONTROLS ═══════════ */}
+      <section id="controls" className="relative py-24 sm:py-32">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060B18] via-[#0a1225] to-[#060B18]" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
+          <Reveal>
+            <div className="mb-16 text-center">
+              <span className="text-sm font-semibold uppercase tracking-widest text-amber-400">
+                Инструкция
+              </span>
+              <h2 className="mt-4 mb-6 text-3xl font-bold sm:text-4xl lg:text-5xl">
+                Управление в <span className="text-amber-400">музее</span>
+              </h2>
+              <p className="mx-auto max-w-2xl text-lg text-gray-400">
+                VR-музей поддерживает управление с клавиатуры и мыши,
+                а&nbsp;также VR-контроллеров
+              </p>
+            </div>
+          </Reveal>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {CONTROLS.map((c, i) => (
+              <Reveal key={i} delay={i * 100}>
+                <div className="group relative h-full rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 transition-all duration-300 hover:border-amber-500/20 hover:bg-amber-500/[0.04]">
+                  <div className="mb-4 text-4xl">{c.icon}</div>
+                  <h3 className="mb-2 text-lg font-semibold transition-colors group-hover:text-amber-400">
+                    {c.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-gray-500">
+                    {c.desc}
+                  </p>
                 </div>
-              </FadeIn>
+              </Reveal>
             ))}
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
+      </section>
 
-/* ───────────── controls ───────────── */
-function ControlsSection() {
-  return (
-    <section id="controls" className="relative bg-stone-900 py-24 sm:py-32">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_rgba(180,130,60,.06)_0%,_transparent_60%)]" />
+      {/* ═══════════ AUTHORS ═══════════ */}
+      <section id="authors" className="relative py-24 sm:py-32">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060B18] via-[#080e1f] to-[#060B18]" />
+        <div className="relative z-10 mx-auto max-w-4xl px-6">
+          <Reveal>
+            <div className="mb-14 text-center">
+              <span className="text-sm font-semibold uppercase tracking-widest text-amber-400">
+                Команда
+              </span>
+              <h2 className="mt-4 mb-6 text-3xl font-bold sm:text-4xl lg:text-5xl">
+                Авторы <span className="text-amber-400">проекта</span>
+              </h2>
+              <p className="mx-auto max-w-xl text-gray-400">
+                Ученики 10 инженерного класса
+              </p>
+            </div>
+          </Reveal>
 
-      <div className="relative mx-auto max-w-6xl px-6">
-        <FadeIn>
-          <p className="text-center text-sm font-medium uppercase tracking-[0.25em] text-amber-500/70">Навигация</p>
-          <h2 className="mt-3 text-center font-['Playfair_Display'] text-4xl font-bold text-stone-100 sm:text-5xl">
-            Управление <span className="text-amber-400">музеем</span>
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-center text-stone-400">
-            VR-музей поддерживает несколько способов управления. Выберите наиболее удобный для вас.
-          </p>
-        </FadeIn>
-
-        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {CONTROLS.map((c, i) => (
-            <FadeIn key={c.title} delay={i * 100}>
-              <div className="group h-full rounded-2xl border border-stone-700/50 bg-stone-800/40 p-6 backdrop-blur-sm transition-all hover:border-amber-500/30 hover:bg-stone-800/70 hover:shadow-lg hover:shadow-amber-500/5">
-                <span className="text-4xl">{c.icon}</span>
-                <h3 className="mt-4 text-lg font-semibold text-stone-100">{c.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-stone-400">{c.desc}</p>
+          <Reveal delay={100}>
+            <div className="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-8 sm:p-12">
+              <div className="grid gap-10 sm:grid-cols-3">
+                {AUTHORS.map((name, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col items-center gap-3 text-center"
+                  >
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full border border-amber-500/20 bg-gradient-to-br from-amber-400/10 to-amber-600/10 text-3xl font-bold text-amber-400">
+                      {name
+                        .split(" ")
+                        .map((w) => w[0])
+                        .join("")}
+                    </div>
+                    <span className="text-lg font-medium text-gray-200">
+                      {name}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      10 инженерный класс
+                    </span>
+                  </div>
+                ))}
               </div>
-            </FadeIn>
-          ))}
+            </div>
+          </Reveal>
         </div>
-      </div>
-    </section>
-  );
-}
+      </section>
 
-/* ───────────── CTA ───────────── */
-function CtaSection() {
-  return (
-    <section className="relative overflow-hidden bg-stone-950 py-24 sm:py-32">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(217,164,48,.1)_0%,_transparent_70%)]" />
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%221%22%20fill%3D%22rgba(255%2C255%2C255%2C.03)%22%2F%3E%3C%2Fsvg%3E')]" />
-
-      <div className="relative mx-auto max-w-3xl px-6 text-center">
-        <FadeIn>
-          <h2 className="font-['Playfair_Display'] text-4xl font-bold text-stone-100 sm:text-5xl">
-            Готовы <span className="text-amber-400">исследовать?</span>
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-lg text-stone-400">
-            Перенеситесь в XVIII–XIX века и своими глазами увидьте стены крепости, которые выдержали десятки штурмов.
-          </p>
-          <a
-            href={VR_LINK}
-            className="group mt-10 inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-10 py-5 text-lg font-bold text-stone-900 shadow-2xl shadow-amber-500/20 transition-all hover:shadow-amber-500/40 hover:scale-105"
-          >
-            Начать путешествие
-            <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-          </a>
-        </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-/* ───────────── authors ───────────── */
-function AuthorsSection() {
-  return (
-    <section id="authors" className="bg-stone-900 py-24 sm:py-32">
-      <div className="mx-auto max-w-4xl px-6 text-center">
-        <FadeIn>
-          <p className="text-sm font-medium uppercase tracking-[0.25em] text-amber-500/70">Создатели проекта</p>
-          <h2 className="mt-3 font-['Playfair_Display'] text-4xl font-bold text-stone-100 sm:text-5xl">
-            Наша <span className="text-amber-400">команда</span>
-          </h2>
-        </FadeIn>
-
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-6">
-          {AUTHORS.map((name, i) => (
-            <FadeIn key={name} delay={i * 120}>
-              <div className="flex items-center gap-3 rounded-2xl border border-stone-700/50 bg-stone-800/40 px-6 py-4 backdrop-blur-sm transition hover:border-amber-500/30 hover:bg-stone-800/60">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-sm font-bold text-stone-900">
-                  {name.charAt(0)}
-                </div>
-                <span className="text-base font-medium text-stone-200">{name}</span>
-              </div>
-            </FadeIn>
-          ))}
+      {/* ═══════════ CTA ═══════════ */}
+      <section id="enter-vr" className="relative py-24 sm:py-36">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060B18] via-[#0d1a30] to-[#060B18]" />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 50% 50%, rgba(217,164,48,0.1) 0%, transparent 55%)",
+          }}
+        />
+        <div className="relative z-10 mx-auto max-w-3xl px-6 text-center">
+          <Reveal>
+            <h2 className="mb-6 text-3xl font-bold sm:text-4xl lg:text-5xl">
+              Готовы{" "}
+              <span className="text-amber-400">погрузиться</span> в&nbsp;историю?
+            </h2>
+            <p className="mx-auto mb-12 max-w-xl text-lg text-gray-400">
+              Исследуйте крепость Анапа в виртуальной реальности
+              и&nbsp;прикоснитесь к событиям, изменившим ход истории
+            </p>
+            <a
+              href="https://example.com/vr-museum"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="glow-button group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 px-12 py-5 text-xl font-bold text-[#060B18] shadow-2xl shadow-amber-500/25 transition-all hover:scale-[1.04] hover:from-amber-400 hover:to-amber-500 hover:shadow-amber-500/50"
+            >
+              <VRIcon size={28} />
+              Войти в VR музей
+            </a>
+          </Reveal>
         </div>
+      </section>
 
-        <FadeIn delay={400}>
-          <p className="mt-8 text-sm text-stone-500">Ученики 10 инженерного класса</p>
-        </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-/* ───────────── footer ───────────── */
-function Footer() {
-  return (
-    <footer className="border-t border-stone-800 bg-stone-950 py-8">
-      <div className="mx-auto max-w-6xl px-6 text-center">
-        <p className="text-sm text-stone-500">
-          © {new Date().getFullYear()} VR Музей «Крепость Анапа». Проект учеников 10 инженерного класса.
-        </p>
-      </div>
-    </footer>
-  );
-}
-
-/* ───────────── App ───────────── */
-export function App() {
-  return (
-    <div className="min-h-screen bg-stone-900 font-['Inter'] text-stone-100 antialiased">
-      <Navbar />
-      <Hero />
-      <HistorySection />
-      <ControlsSection />
-      <CtaSection />
-      <AuthorsSection />
-      <Footer />
+      {/* ═══════════ FOOTER ═══════════ */}
+      <footer className="relative border-t border-white/5 py-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 text-sm text-gray-600 sm:flex-row">
+          <span>© 2025 VR Музей «Крепость Анапа»</span>
+          <span>Проект учеников 10 инженерного класса</span>
+        </div>
+      </footer>
     </div>
   );
 }
