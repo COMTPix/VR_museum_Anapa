@@ -56,7 +56,6 @@
         #crosshair::before { width: 2px; height: 20px; left: 9px; top: 0; }
         #crosshair::after { width: 20px; height: 2px; top: 9px; left: 0; }
 
-        /* Painting info tooltip */
         #painting-info {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.85); color: #e0c97f; padding: 14px 28px;
@@ -66,9 +65,60 @@
             text-align: center;
         }
         #painting-info.visible { opacity: 1; }
+
+        /* Modal Styles */
+        #modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 2000;
+            display: none; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.3s;
+            backdrop-filter: blur(5px);
+        }
+        #modal-overlay.active { display: flex; opacity: 1; pointer-events: auto; }
+        
+        .modal-content {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border: 2px solid #e0c97f;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            color: #f5f0e8;
+            position: relative;
+            box-shadow: 0 0 50px rgba(224, 201, 127, 0.2);
+            text-align: center;
+        }
+        .modal-close {
+            position: absolute; top: 15px; right: 20px;
+            color: #e0c97f; font-size: 2rem; cursor: pointer;
+            background: none; border: none;
+        }
+        .modal-title {
+            font-size: 1.8rem; color: #e0c97f; margin-bottom: 10px;
+            font-family: 'Times New Roman', serif; letter-spacing: 1px;
+        }
+        .modal-artist {
+            font-size: 1.2rem; color: #aaa; margin-bottom: 25px;
+            font-style: italic; border-bottom: 1px solid rgba(224, 201, 127, 0.3);
+            padding-bottom: 15px; display: inline-block;
+        }
+        .modal-desc {
+            font-size: 1.1rem; line-height: 1.6; text-align: justify;
+            color: #ddd; margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
+    <!-- Info Modal -->
+    <div id="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModalDirect()">×</button>
+            <h2 class="modal-title" id="m-title">Название картины</h2>
+            <div class="modal-artist" id="m-artist">Автор, Год</div>
+            <p class="modal-desc" id="m-desc">Описание картины...</p>
+        </div>
+    </div>
+
     <!-- Loading Screen -->
     <div id="loading-screen">
         <h1>🏛️ VR МУЗЕЙ</h1>
@@ -84,340 +134,422 @@
     </div>
     <div id="painting-info"></div>
 
+    <script>
+    // ============ GLOBAL MODAL FUNCTIONS ============
+    function showPaintingInfo(title, artist, desc) {
+        document.getElementById('m-title').innerText = title || "Без названия";
+        document.getElementById('m-artist').innerText = artist || "Неизвестный автор";
+        document.getElementById('m-desc').innerText = desc || "Информация скоро появится.";
+        
+        const overlay = document.getElementById('modal-overlay');
+        overlay.style.display = 'flex';
+        // Small delay to allow display:flex to apply before opacity transition
+        requestAnimationFrame(() => {
+            overlay.classList.add('active');
+        });
+        
+        // Exit pointer lock so user can use mouse
+        if (document.pointerLockElement) {
+            document.exitPointerLock();
+        }
+    }
+
+    function closeModal(e) {
+        if (e.target.id === 'modal-overlay') {
+            closeModalDirect();
+        }
+    }
+    
+    function closeModalDirect() {
+        const overlay = document.getElementById('modal-overlay');
+        overlay.classList.remove('active');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            // Optional: return focus to canvas
+            const scene = document.querySelector('a-scene');
+            if (scene && scene.canvas) scene.canvas.focus();
+        }, 300);
+    }
+
+    // ============ REGISTER auto-frame COMPONENT ============
+    AFRAME.registerComponent('auto-frame', {
+        schema: {
+            url:       { type: 'string', default: '' },
+            title:     { type: 'string', default: '' },
+            artist:    { type: 'string', default: '' },
+            description: { type: 'string', default: '' },
+            maxWidth:  { type: 'number', default: 4.0 },
+            maxHeight: { type: 'number', default: 3.5 },
+            frameDepth:{ type: 'number', default: 0.18 }
+        },
+
+        init: function () {
+            const data = this.data;
+
+            if (data.url && data.url.length > 0) {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const aspect = img.naturalWidth / img.naturalHeight;
+                    this.buildFrame(aspect, data, true, img);
+                };
+                img.onerror = () => {
+                    this.buildFrame(4/3, data, false, null);
+                };
+                img.src = data.url;
+            } else {
+                this.buildFrame(4/3, data, false, null);
+            }
+        },
+
+        buildFrame: function (aspect, data, hasImage, imgElement) {
+            const el = this.el;
+            const maxW = data.maxWidth;
+            const maxH = data.maxHeight;
+            const fd = data.frameDepth;
+
+            // Calculate canvas size
+            let canvasW, canvasH;
+            if (aspect >= 1) {
+                canvasW = Math.min(maxW, maxH * aspect);
+                canvasH = canvasW / aspect;
+                if (canvasH > maxH) { canvasH = maxH; canvasW = canvasH * aspect; }
+            } else {
+                canvasH = Math.min(maxH, maxW / aspect);
+                canvasW = canvasH * aspect;
+                if (canvasW > maxW) { canvasW = maxW; canvasH = canvasW / aspect; }
+            }
+
+            const border = 0.25;
+            const frameW = canvasW + border * 2;
+            const frameH = canvasH + border * 2;
+
+            // ---- LAYERS (Clean Z-separation) ----
+            const outer = document.createElement('a-box');
+            outer.setAttribute('width', frameW + 0.15);
+            outer.setAttribute('height', frameH + 0.15);
+            outer.setAttribute('depth', fd);
+            outer.setAttribute('position', '0 0 0');
+            el.appendChild(outer);
+            outer.addEventListener('loaded', () => {
+                const mesh = outer.getObject3D('mesh');
+                if (mesh) mesh.material = new THREE.MeshStandardMaterial({ color: '#6B4F1D', roughness: 0.25, metalness: 0.65 });
+            });
+
+            const mid = document.createElement('a-box');
+            mid.setAttribute('width', frameW + 0.05);
+            mid.setAttribute('height', frameH + 0.05);
+            mid.setAttribute('depth', fd * 0.6);
+            mid.setAttribute('position', '0 0 ' + (fd * 0.35));
+            el.appendChild(mid);
+            mid.addEventListener('loaded', () => {
+                const mesh = mid.getObject3D('mesh');
+                if (mesh) mesh.material = new THREE.MeshStandardMaterial({ color: '#DAA520', roughness: 0.35, metalness: 0.55 });
+            });
+
+            const inner = document.createElement('a-box');
+            inner.setAttribute('width', frameW - 0.05);
+            inner.setAttribute('height', frameH - 0.05);
+            inner.setAttribute('depth', fd * 0.4);
+            inner.setAttribute('position', '0 0 ' + (fd * 0.55));
+            el.appendChild(inner);
+            inner.addEventListener('loaded', () => {
+                const mesh = inner.getObject3D('mesh');
+                if (mesh) mesh.material = new THREE.MeshStandardMaterial({ color: '#8B6914', roughness: 0.25, metalness: 0.6 });
+            });
+
+            const lip = document.createElement('a-box');
+            lip.setAttribute('width', canvasW + 0.08);
+            lip.setAttribute('height', canvasH + 0.08);
+            lip.setAttribute('depth', fd * 0.25);
+            lip.setAttribute('position', '0 0 ' + (fd * 0.7));
+            el.appendChild(lip);
+            lip.addEventListener('loaded', () => {
+                const mesh = lip.getObject3D('mesh');
+                if (mesh) mesh.material = new THREE.MeshStandardMaterial({ color: '#B8860B', roughness: 0.3, metalness: 0.7 });
+            });
+
+            // Canvas
+            const canvasZ = fd * 0.95; 
+            const canvas = document.createElement('a-plane');
+            canvas.setAttribute('width', canvasW);
+            canvas.setAttribute('height', canvasH);
+            canvas.setAttribute('position', '0 0 ' + canvasZ);
+            canvas.setAttribute('class', 'clickable'); // Enable raycasting
+            
+            // Interaction
+            if (hasImage) {
+                canvas.addEventListener('click', () => {
+                    showPaintingInfo(data.title, data.artist, data.description);
+                });
+                
+                canvas.addEventListener('mouseenter', () => {
+                    document.body.style.cursor = 'pointer';
+                    light.setAttribute('intensity', '3.5');
+                });
+                canvas.addEventListener('mouseleave', () => {
+                    document.body.style.cursor = 'default';
+                    light.setAttribute('intensity', '2.5');
+                });
+            }
+
+            if (hasImage && imgElement) {
+                const tex = new THREE.Texture(imgElement);
+                tex.colorSpace = THREE.SRGBColorSpace;
+                tex.minFilter = THREE.LinearMipmapLinearFilter;
+                tex.magFilter = THREE.LinearFilter;
+                tex.generateMipmaps = true;
+                tex.anisotropy = 16;
+                tex.needsUpdate = true;
+
+                canvas.addEventListener('loaded', () => {
+                     const mesh = canvas.getObject3D('mesh');
+                     if (mesh) {
+                         mesh.material = new THREE.MeshBasicMaterial({
+                             map: tex,
+                             toneMapped: false,
+                             side: THREE.DoubleSide
+                         });
+                     }
+                });
+            } else {
+                canvas.setAttribute('material', 'color: #050505; roughness: 0.95');
+            }
+            el.appendChild(canvas);
+
+            // === Spotlight ===
+            const light = document.createElement('a-light');
+            light.setAttribute('type', 'spot');
+            light.setAttribute('color', '#FFF8E7');
+            light.setAttribute('intensity', '2.5');
+            light.setAttribute('distance', '8');
+            light.setAttribute('angle', '50');
+            light.setAttribute('penumbra', '0.4');
+            light.setAttribute('position', '0 ' + (frameH/2 + 2) + ' 3');
+            light.setAttribute('target', canvas);
+            el.appendChild(light);
+
+            // === Label plate (Enhanced) ===
+            if (data.title || data.artist) {
+                const labelW = Math.max(2.0, canvasW * 0.8);
+                const labelH = 0.6; // Bigger plaque
+                const labelGroup = document.createElement('a-entity');
+                labelGroup.setAttribute('position', '0 ' + (-(frameH/2) - 0.5) + ' ' + (fd * 0.5));
+
+                // Gold border/base
+                const labelBg = document.createElement('a-box');
+                labelBg.setAttribute('width', labelW);
+                labelBg.setAttribute('height', labelH);
+                labelBg.setAttribute('depth', 0.04);
+                labelBg.setAttribute('material', 'color: #B8860B; roughness: 0.3; metalness: 0.8');
+                labelGroup.appendChild(labelBg);
+                
+                // Black inner face
+                const labelFace = document.createElement('a-plane');
+                labelFace.setAttribute('width', labelW - 0.05);
+                labelFace.setAttribute('height', labelH - 0.05);
+                labelFace.setAttribute('position', '0 0 0.025');
+                labelFace.setAttribute('material', 'color: #050505; roughness: 0.8');
+                labelGroup.appendChild(labelFace);
+
+                if (data.title) {
+                    const titleText = document.createElement('a-text');
+                    titleText.setAttribute('value', data.title);
+                    titleText.setAttribute('align', 'center');
+                    titleText.setAttribute('color', '#ffffff');
+                    titleText.setAttribute('width', labelW * 0.9);
+                    titleText.setAttribute('wrap-count', '25');
+                    titleText.setAttribute('position', '0 0.1 0.03');
+                    titleText.setAttribute('font', 'https://cdn.aframe.io/fonts/Exo2Bold.fnt');
+                    labelGroup.appendChild(titleText);
+                }
+                if (data.artist) {
+                    const artistText = document.createElement('a-text');
+                    artistText.setAttribute('value', data.artist);
+                    artistText.setAttribute('align', 'center');
+                    artistText.setAttribute('color', '#DAA520'); // Gold text
+                    artistText.setAttribute('width', labelW * 0.9);
+                    artistText.setAttribute('wrap-count', '30');
+                    artistText.setAttribute('position', '0 -0.12 0.03');
+                    artistText.setAttribute('font', 'https://cdn.aframe.io/fonts/Exo2SemiBold.fnt');
+                    labelGroup.appendChild(artistText);
+                }
+                el.appendChild(labelGroup);
+            }
+
+            // === Corner ornaments ===
+            const cornerZ = fd * 0.85;
+            const corners = [
+                { x: -(frameW/2 - 0.05), y:  (frameH/2 - 0.05) },
+                { x:  (frameW/2 - 0.05), y:  (frameH/2 - 0.05) },
+                { x: -(frameW/2 - 0.05), y: -(frameH/2 - 0.05) },
+                { x:  (frameW/2 - 0.05), y: -(frameH/2 - 0.05) }
+            ];
+            corners.forEach(c => {
+                const orn = document.createElement('a-sphere');
+                orn.setAttribute('radius', 0.07);
+                orn.setAttribute('position', c.x + ' ' + c.y + ' ' + cornerZ);
+                orn.setAttribute('material', 'color: #DAA520; metalness: 0.8; roughness: 0.15');
+                el.appendChild(orn);
+            });
+        }
+    });
+
+    // ============ REGISTER dust-particles COMPONENT ============
+    AFRAME.registerComponent('dust-particles', {
+        init: function () {
+            for (let i = 0; i < 40; i++) {
+                const particle = document.createElement('a-sphere');
+                particle.setAttribute('radius', Math.random() * 0.02 + 0.005);
+                particle.setAttribute('position', {
+                    x: (Math.random() - 0.5) * 28,
+                    y: Math.random() * 7 + 0.5,
+                    z: (Math.random() - 0.5) * 48
+                });
+                particle.setAttribute('material', {
+                    color: '#FFF8E7',
+                    opacity: Math.random() * 0.25 + 0.08,
+                    transparent: true
+                });
+                particle.setAttribute('animation', {
+                    property: 'position.y',
+                    dir: 'alternate',
+                    dur: Math.random() * 6000 + 3000,
+                    easing: 'easeInOutSine',
+                    loop: true,
+                    to: Math.random() * 7 + 0.5
+                });
+                this.el.appendChild(particle);
+            }
+        }
+    });
+    </script>
+
     <!-- A-Frame Scene -->
     <a-scene
         vr-mode-ui="enabled: true"
-        renderer="antialias: true; colorManagement: true; sortObjects: true; physicallyCorrectLights: false"
-        fog="type: exponential; color: #1a1a2e; density: 0.015"
+        renderer="antialias: true; colorManagement: true; sortObjects: true; physicallyCorrectLights: false; highRefreshRate: true; maxCanvasWidth: 4096; maxCanvasHeight: 4096; precision: highp; logarithmicDepthBuffer: true"
+        fog="type: exponential; color: #1a1a2e; density: 0.012"
         loading-screen="enabled: false"
         id="scene"
     >
         <!-- Assets -->
-        <a-assets timeout="15000">
-            <!-- Floor textures -->
-            <img id="floor-tex" src="https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=512&q=60" crossorigin="anonymous">
-            <img id="marble-tex" src="https://images.unsplash.com/photo-1629196914375-4c76b86f7a1e?w=512&q=60" crossorigin="anonymous">
-            
-            <!-- Placeholder paintings - REPLACE THESE URLs WITH YOUR OWN -->
-            <img id="painting-1" src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/800px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg" crossorigin="anonymous">
-            <img id="painting-2" src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/VanGogh-starry_night_ballance1.jpg/1280px-VanGogh-starry_night_ballance1.jpg" crossorigin="anonymous">
-            <img id="painting-3" src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/The_Scream.jpg/800px-The_Scream.jpg" crossorigin="anonymous">
-            <img id="painting-4" src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg" crossorigin="anonymous">
-            <img id="painting-5" src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/The_Garden_of_Earthly_Delights_by_Bosch_High_Resolution_2.jpg/1280px-The_Garden_of_Earthly_Delights_by_Bosch_High_Resolution_2.jpg" crossorigin="anonymous">
-            <img id="painting-6" src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Vasily_Kandinsky%2C_1913_-_Composition_7.jpg/1280px-Vasily_Kandinsky%2C_1913_-_Composition_7.jpg" crossorigin="anonymous">
-            <img id="painting-7" src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Tsunami_by_hokusai_19th_century.jpg/1280px-Tsunami_by_hokusai_19th_century.jpg" crossorigin="anonymous">
-            <img id="painting-8" src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Aivazovsky%2C_Ivan_-_The_Ninth_Wave.jpg/1280px-Aivazovsky%2C_Ivan_-_The_Ninth_Wave.jpg" crossorigin="anonymous">
-            <img id="painting-9" src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Above_the_Eternal_Tranquility.jpg/1280px-Above_the_Eternal_Tranquility.jpg" crossorigin="anonymous">
-            <img id="painting-10" src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Morning_in_a_Pine_Forest.jpg/1280px-Morning_in_a_Pine_Forest.jpg" crossorigin="anonymous">
-            <img id="painting-11" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Girl_with_a_Pearl_Earring.jpg/800px-Girl_with_a_Pearl_Earring.jpg" crossorigin="anonymous">
-            <img id="painting-12" src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg/1280px-Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg" crossorigin="anonymous">
+        <a-assets timeout="30000">
         </a-assets>
 
         <!-- ============ ENVIRONMENT ============ -->
-        
-        <!-- Sky -->
         <a-sky color="#0d1117"></a-sky>
 
         <!-- ============ MAIN HALL ============ -->
         
-        <!-- Floor - Main Hall -->
+        <!-- Floor -->
         <a-plane position="0 0 0" rotation="-90 0 0" width="30" height="50" 
-                 material="color: #2a1f14; roughness: 0.3; metalness: 0.1"
-                 shadow="receive: true">
-        </a-plane>
-        <!-- Floor pattern -->
-        <a-plane position="0 0.01 0" rotation="-90 0 0" width="28" height="48"
-                 material="color: #3d2b1f; roughness: 0.4; metalness: 0.05; opacity: 0.5">
-        </a-plane>
-        <!-- Floor center runner -->
-        <a-plane position="0 0.02 0" rotation="-90 0 0" width="4" height="48"
-                 material="color: #8b1a1a; roughness: 0.6; metalness: 0">
-        </a-plane>
+                 material="color: #2a1f14; roughness: 0.3; metalness: 0.1" shadow="receive: true"></a-plane>
+        <a-plane position="0 0.02 0" rotation="-90 0 0" width="28" height="48"
+                 material="color: #3d2b1f; roughness: 0.4; metalness: 0.05"></a-plane>
+        <a-plane position="0 0.04 0" rotation="-90 0 0" width="4" height="48"
+                 material="color: #8b1a1a; roughness: 0.6; metalness: 0"></a-plane>
 
         <!-- Ceiling -->
         <a-plane position="0 8 0" rotation="90 0 0" width="30" height="50"
-                 material="color: #f5f0e8; roughness: 0.9">
-        </a-plane>
-        <!-- Ceiling trim -->
+                 material="color: #f5f0e8; roughness: 0.9"></a-plane>
         <a-box position="0 7.8 0" width="28" height="0.15" depth="48"
-               material="color: #e0c97f; roughness: 0.5; metalness: 0.3" scale="1 1 1">
-        </a-box>
+               material="color: #e0c97f; roughness: 0.5; metalness: 0.3"></a-box>
 
         <!-- ============ WALLS ============ -->
         
         <!-- Left Wall -->
         <a-plane position="-15 4 0" rotation="0 90 0" width="50" height="8"
-                 material="color: #2c3e50; roughness: 0.8">
-        </a-plane>
-        <!-- Left Wall wainscoting (lower panel) -->
-        <a-plane position="-14.95 1.5 0" rotation="0 90 0" width="50" height="3"
-                 material="color: #1a252f; roughness: 0.7">
-        </a-plane>
-        <!-- Left Wall crown molding -->
-        <a-box position="-14.9 3 0" rotation="0 0 0" width="0.15" height="0.2" depth="50"
-               material="color: #e0c97f; metalness: 0.4; roughness: 0.3">
-        </a-box>
-        <a-box position="-14.9 7.5 0" rotation="0 0 0" width="0.15" height="0.2" depth="50"
-               material="color: #e0c97f; metalness: 0.4; roughness: 0.3">
-        </a-box>
+                 material="color: #2c3e50; roughness: 0.8"></a-plane>
+        <a-plane position="-14.93 1.5 0" rotation="0 90 0" width="50" height="3"
+                 material="color: #1a252f; roughness: 0.7"></a-plane>
+        <a-box position="-14.88 3 0" width="0.15" height="0.2" depth="50"
+               material="color: #e0c97f; metalness: 0.4; roughness: 0.3"></a-box>
+        <a-box position="-14.88 7.5 0" width="0.15" height="0.2" depth="50"
+               material="color: #e0c97f; metalness: 0.4; roughness: 0.3"></a-box>
 
         <!-- Right Wall -->
         <a-plane position="15 4 0" rotation="0 -90 0" width="50" height="8"
-                 material="color: #2c3e50; roughness: 0.8">
-        </a-plane>
-        <!-- Right Wall wainscoting -->
-        <a-plane position="14.95 1.5 0" rotation="0 -90 0" width="50" height="3"
-                 material="color: #1a252f; roughness: 0.7">
-        </a-plane>
-        <!-- Right Wall crown molding -->
-        <a-box position="14.9 3 0" rotation="0 0 0" width="0.15" height="0.2" depth="50"
-               material="color: #e0c97f; metalness: 0.4; roughness: 0.3">
-        </a-box>
-        <a-box position="14.9 7.5 0" rotation="0 0 0" width="0.15" height="0.2" depth="50"
-               material="color: #e0c97f; metalness: 0.4; roughness: 0.3">
-        </a-box>
+                 material="color: #2c3e50; roughness: 0.8"></a-plane>
+        <a-plane position="14.93 1.5 0" rotation="0 -90 0" width="50" height="3"
+                 material="color: #1a252f; roughness: 0.7"></a-plane>
+        <a-box position="14.88 3 0" width="0.15" height="0.2" depth="50"
+               material="color: #e0c97f; metalness: 0.4; roughness: 0.3"></a-box>
+        <a-box position="14.88 7.5 0" width="0.15" height="0.2" depth="50"
+               material="color: #e0c97f; metalness: 0.4; roughness: 0.3"></a-box>
 
         <!-- Back Wall -->
         <a-plane position="0 4 -25" rotation="0 0 0" width="30" height="8"
-                 material="color: #2c3e50; roughness: 0.8">
-        </a-plane>
-        <a-plane position="0 1.5 -24.95" rotation="0 0 0" width="30" height="3"
-                 material="color: #1a252f; roughness: 0.7">
-        </a-plane>
+                 material="color: #2c3e50; roughness: 0.8"></a-plane>
+        <a-plane position="0 1.5 -24.93" rotation="0 0 0" width="30" height="3"
+                 material="color: #1a252f; roughness: 0.7"></a-plane>
 
         <!-- Front Wall (with entrance arch) -->
         <a-plane position="-10 4 25" rotation="0 180 0" width="10" height="8"
-                 material="color: #2c3e50; roughness: 0.8">
-        </a-plane>
+                 material="color: #2c3e50; roughness: 0.8"></a-plane>
         <a-plane position="10 4 25" rotation="0 180 0" width="10" height="8"
-                 material="color: #2c3e50; roughness: 0.8">
-        </a-plane>
+                 material="color: #2c3e50; roughness: 0.8"></a-plane>
         <a-plane position="0 7 25" rotation="0 180 0" width="10" height="2"
-                 material="color: #2c3e50; roughness: 0.8">
-        </a-plane>
+                 material="color: #2c3e50; roughness: 0.8"></a-plane>
 
-        <!-- ============ COLUMNS ============ -->
-        
-        <!-- Left side columns -->
-        <a-entity class="column" position="-12 0 -20">
-            <a-cylinder radius="0.5" height="8" position="0 4 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-cylinder>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 0.2 0" material="color: #c4b595; roughness: 0.4"></a-box>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 7.8 0" material="color: #c4b595; roughness: 0.4"></a-box>
-        </a-entity>
-        <a-entity class="column" position="-12 0 -10">
-            <a-cylinder radius="0.5" height="8" position="0 4 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-cylinder>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 0.2 0" material="color: #c4b595; roughness: 0.4"></a-box>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 7.8 0" material="color: #c4b595; roughness: 0.4"></a-box>
-        </a-entity>
-        <a-entity class="column" position="-12 0 0">
-            <a-cylinder radius="0.5" height="8" position="0 4 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-cylinder>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 0.2 0" material="color: #c4b595; roughness: 0.4"></a-box>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 7.8 0" material="color: #c4b595; roughness: 0.4"></a-box>
-        </a-entity>
-        <a-entity class="column" position="-12 0 10">
-            <a-cylinder radius="0.5" height="8" position="0 4 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-cylinder>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 0.2 0" material="color: #c4b595; roughness: 0.4"></a-box>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 7.8 0" material="color: #c4b595; roughness: 0.4"></a-box>
-        </a-entity>
-        <a-entity class="column" position="-12 0 20">
-            <a-cylinder radius="0.5" height="8" position="0 4 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-cylinder>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 0.2 0" material="color: #c4b595; roughness: 0.4"></a-box>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 7.8 0" material="color: #c4b595; roughness: 0.4"></a-box>
+        <!-- ============ PAINTING FRAMES (auto-sizing) ============ -->
+
+        <!-- ===== LEFT WALL — 6 рамок (Y lowered to 2.8) ===== -->
+        <a-entity position="-14.7 2.8 -20" rotation="0 90 0"
+            auto-frame="url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/After_the_attack._Plevna%2C_1877-1878.jpg/1280px-After_the_attack._Plevna%2C_1877-1878.jpg; 
+                        title: После атаки. Перевязочный пункт под Плевной; 
+                        artist: В.В. Верещагин, 1877-1878; 
+                        description: На картине изображен перевязочный пункт близ деревни Горный Дубняк под Плевной. Верещагин показывает изнанку войны: вместо парадных побед — страдания раненых, ждущих помощи под открытым небом. Это полотно стало одним из самых сильных антивоенных высказываний своего времени.;
+                        maxWidth: 5; maxHeight: 3.5">
         </a-entity>
 
-        <!-- Right side columns -->
-        <a-entity class="column" position="12 0 -20">
-            <a-cylinder radius="0.5" height="8" position="0 4 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-cylinder>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 0.2 0" material="color: #c4b595; roughness: 0.4"></a-box>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 7.8 0" material="color: #c4b595; roughness: 0.4"></a-box>
-        </a-entity>
-        <a-entity class="column" position="12 0 -10">
-            <a-cylinder radius="0.5" height="8" position="0 4 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-cylinder>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 0.2 0" material="color: #c4b595; roughness: 0.4"></a-box>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 7.8 0" material="color: #c4b595; roughness: 0.4"></a-box>
-        </a-entity>
-        <a-entity class="column" position="12 0 0">
-            <a-cylinder radius="0.5" height="8" position="0 4 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-cylinder>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 0.2 0" material="color: #c4b595; roughness: 0.4"></a-box>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 7.8 0" material="color: #c4b595; roughness: 0.4"></a-box>
-        </a-entity>
-        <a-entity class="column" position="12 0 10">
-            <a-cylinder radius="0.5" height="8" position="0 4 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-cylinder>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 0.2 0" material="color: #c4b595; roughness: 0.4"></a-box>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 7.8 0" material="color: #c4b595; roughness: 0.4"></a-box>
-        </a-entity>
-        <a-entity class="column" position="12 0 20">
-            <a-cylinder radius="0.5" height="8" position="0 4 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-cylinder>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 0.2 0" material="color: #c4b595; roughness: 0.4"></a-box>
-            <a-box width="1.3" height="0.4" depth="1.3" position="0 7.8 0" material="color: #c4b595; roughness: 0.4"></a-box>
+        <a-entity position="-14.7 2.8 -12" rotation="0 90 0"
+            auto-frame="url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/After_the_attack._Plevna%2C_1877-1878.jpg/1280px-After_the_attack._Plevna%2C_1877-1878.jpg; 
+                        title: После атаки. Перевязочный пункт под Плевной; 
+                        artist: Василий Васильевич Верещагин, 1878; 
+                        description: Второе полотно из Балканской серии. Художник писал: «Я всё сердце своё вложил в эти картины». Реализм Верещагина был настолько шокирующим для современников, что его обвиняли в клевете на русскую армию, хотя он сам был участником этих событий и был ранен.;
+                        maxWidth: 5; maxHeight: 3.5">
         </a-entity>
 
-        <!-- ============ PICTURE FRAMES WITH PAINTINGS ============ -->
-
-        <!-- ===== LEFT WALL PAINTINGS ===== -->
-        
-        <!-- Painting 1 - Mona Lisa -->
-        <a-entity class="painting-group" position="-14.7 4.5 -18" rotation="0 90 0">
-            <!-- Frame outer -->
-            <a-box width="3.2" height="4.2" depth="0.2" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <!-- Frame inner border -->
-            <a-box width="2.9" height="3.9" depth="0.22" material="color: #DAA520; roughness: 0.4; metalness: 0.5"></a-box>
-            <!-- Frame inner detail -->
-            <a-box width="2.7" height="3.7" depth="0.24" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <!-- Canvas -->
-            <a-plane width="2.5" height="3.5" position="0 0 0.13" material="src: #painting-1; roughness: 0.8"></a-plane>
-            <!-- Spotlight for painting -->
-            <a-light type="spot" color="#FFF5E0" intensity="2" distance="5" angle="40" penumbra="0.5" position="0 2.5 1.5" target=""></a-light>
-            <!-- Label -->
-            <a-plane width="1.5" height="0.3" position="0 -2.5 0.05" material="color: #1a1a2e; roughness: 0.9">
-                <a-text value="Мона Лиза" align="center" color="#e0c97f" width="2.8" position="0 0.02 0.01"></a-text>
-                <a-text value="Леонардо да Винчи" align="center" color="#aaa" width="2" position="0 -0.08 0.01" font="mozillavr"></a-text>
-            </a-plane>
+        <a-entity position="-14.7 2.8 -4" rotation="0 90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
         </a-entity>
 
-        <!-- Painting 2 -->
-        <a-entity class="painting-group" position="-14.7 4.5 -10" rotation="0 90 0">
-            <a-box width="4.2" height="3.2" depth="0.2" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-box width="3.9" height="2.9" depth="0.22" material="color: #DAA520; roughness: 0.4; metalness: 0.5"></a-box>
-            <a-box width="3.7" height="2.7" depth="0.24" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-plane width="3.5" height="2.5" position="0 0 0.13" material="src: #painting-2; roughness: 0.8"></a-plane>
-            <a-light type="spot" color="#FFF5E0" intensity="2" distance="5" angle="40" penumbra="0.5" position="0 2.5 1.5"></a-light>
-            <a-plane width="1.8" height="0.3" position="0 -2 0.05" material="color: #1a1a2e; roughness: 0.9">
-                <a-text value="Звёздная ночь (Рона)" align="center" color="#e0c97f" width="2.8" position="0 0.02 0.01"></a-text>
-                <a-text value="Винсент ван Гог" align="center" color="#aaa" width="2" position="0 -0.08 0.01"></a-text>
-            </a-plane>
+        <a-entity position="-14.7 2.8 4" rotation="0 90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4.5; maxHeight: 3.5">
         </a-entity>
 
-        <!-- Painting 3 -->
-        <a-entity class="painting-group" position="-14.7 4.5 -2" rotation="0 90 0">
-            <a-box width="3.2" height="4.2" depth="0.2" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-box width="2.9" height="3.9" depth="0.22" material="color: #DAA520; roughness: 0.4; metalness: 0.5"></a-box>
-            <a-box width="2.7" height="3.7" depth="0.24" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-plane width="2.5" height="3.5" position="0 0 0.13" material="src: #painting-3; roughness: 0.8"></a-plane>
-            <a-light type="spot" color="#FFF5E0" intensity="2" distance="5" angle="40" penumbra="0.5" position="0 2.5 1.5"></a-light>
-            <a-plane width="1.2" height="0.3" position="0 -2.5 0.05" material="color: #1a1a2e; roughness: 0.9">
-                <a-text value="Крик" align="center" color="#e0c97f" width="2.8" position="0 0.02 0.01"></a-text>
-                <a-text value="Эдвард Мунк" align="center" color="#aaa" width="2" position="0 -0.08 0.01"></a-text>
-            </a-plane>
+        <a-entity position="-14.7 2.8 12" rotation="0 90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 5; maxHeight: 3.5">
         </a-entity>
 
-        <!-- Painting 4 -->
-        <a-entity class="painting-group" position="-14.7 4.5 6" rotation="0 90 0">
-            <a-box width="4.2" height="3.5" depth="0.2" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-box width="3.9" height="3.2" depth="0.22" material="color: #DAA520; roughness: 0.4; metalness: 0.5"></a-box>
-            <a-box width="3.7" height="3.0" depth="0.24" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-plane width="3.5" height="2.8" position="0 0 0.13" material="src: #painting-4; roughness: 0.8"></a-plane>
-            <a-light type="spot" color="#FFF5E0" intensity="2" distance="5" angle="40" penumbra="0.5" position="0 2.5 1.5"></a-light>
-            <a-plane width="1.8" height="0.3" position="0 -2.1 0.05" material="color: #1a1a2e; roughness: 0.9">
-                <a-text value="Звёздная ночь" align="center" color="#e0c97f" width="2.8" position="0 0.02 0.01"></a-text>
-                <a-text value="Винсент ван Гог" align="center" color="#aaa" width="2" position="0 -0.08 0.01"></a-text>
-            </a-plane>
+        <a-entity position="-14.7 2.8 20" rotation="0 90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
         </a-entity>
 
-        <!-- Painting 5 -->
-        <a-entity class="painting-group" position="-14.7 4.5 14" rotation="0 90 0">
-            <a-box width="5.2" height="3.2" depth="0.2" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-box width="4.9" height="2.9" depth="0.22" material="color: #DAA520; roughness: 0.4; metalness: 0.5"></a-box>
-            <a-box width="4.7" height="2.7" depth="0.24" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-plane width="4.5" height="2.5" position="0 0 0.13" material="src: #painting-5; roughness: 0.8"></a-plane>
-            <a-light type="spot" color="#FFF5E0" intensity="2" distance="5" angle="40" penumbra="0.5" position="0 2.5 1.5"></a-light>
-            <a-plane width="2.2" height="0.3" position="0 -2 0.05" material="color: #1a1a2e; roughness: 0.9">
-                <a-text value="Сад земных наслаждений" align="center" color="#e0c97f" width="3.2" position="0 0.02 0.01"></a-text>
-                <a-text value="Иероним Босх" align="center" color="#aaa" width="2" position="0 -0.08 0.01"></a-text>
-            </a-plane>
+        <!-- ===== RIGHT WALL — 6 рамок (Y lowered to 2.8) ===== -->
+        <a-entity position="14.7 2.8 -20" rotation="0 -90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
         </a-entity>
 
-        <!-- Painting 6 -->
-        <a-entity class="painting-group" position="-14.7 4.5 22" rotation="0 90 0">
-            <a-box width="4.2" height="3.2" depth="0.2" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-box width="3.9" height="2.9" depth="0.22" material="color: #DAA520; roughness: 0.4; metalness: 0.5"></a-box>
-            <a-box width="3.7" height="2.7" depth="0.24" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-plane width="3.5" height="2.5" position="0 0 0.13" material="src: #painting-6; roughness: 0.8"></a-plane>
-            <a-light type="spot" color="#FFF5E0" intensity="2" distance="5" angle="40" penumbra="0.5" position="0 2.5 1.5"></a-light>
-            <a-plane width="1.6" height="0.3" position="0 -2 0.05" material="color: #1a1a2e; roughness: 0.9">
-                <a-text value="Композиция VII" align="center" color="#e0c97f" width="2.8" position="0 0.02 0.01"></a-text>
-                <a-text value="Василий Кандинский" align="center" color="#aaa" width="2" position="0 -0.08 0.01"></a-text>
-            </a-plane>
+        <a-entity position="14.7 2.8 -12" rotation="0 -90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4.5; maxHeight: 3.5">
         </a-entity>
 
-        <!-- ===== RIGHT WALL PAINTINGS ===== -->
-
-        <!-- Painting 7 -->
-        <a-entity class="painting-group" position="14.7 4.5 -18" rotation="0 -90 0">
-            <a-box width="4.2" height="3.2" depth="0.2" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-box width="3.9" height="2.9" depth="0.22" material="color: #DAA520; roughness: 0.4; metalness: 0.5"></a-box>
-            <a-box width="3.7" height="2.7" depth="0.24" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-plane width="3.5" height="2.5" position="0 0 0.13" material="src: #painting-7; roughness: 0.8"></a-plane>
-            <a-light type="spot" color="#FFF5E0" intensity="2" distance="5" angle="40" penumbra="0.5" position="0 2.5 1.5"></a-light>
-            <a-plane width="2" height="0.3" position="0 -2 0.05" material="color: #1a1a2e; roughness: 0.9">
-                <a-text value="Большая волна в Канагаве" align="center" color="#e0c97f" width="3" position="0 0.02 0.01"></a-text>
-                <a-text value="Кацусика Хокусай" align="center" color="#aaa" width="2" position="0 -0.08 0.01"></a-text>
-            </a-plane>
+        <a-entity position="14.7 2.8 -4" rotation="0 -90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
         </a-entity>
 
-        <!-- Painting 8 -->
-        <a-entity class="painting-group" position="14.7 4.5 -10" rotation="0 -90 0">
-            <a-box width="4.5" height="3.2" depth="0.2" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-box width="4.2" height="2.9" depth="0.22" material="color: #DAA520; roughness: 0.4; metalness: 0.5"></a-box>
-            <a-box width="4.0" height="2.7" depth="0.24" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-plane width="3.8" height="2.5" position="0 0 0.13" material="src: #painting-8; roughness: 0.8"></a-plane>
-            <a-light type="spot" color="#FFF5E0" intensity="2" distance="5" angle="40" penumbra="0.5" position="0 2.5 1.5"></a-light>
-            <a-plane width="1.6" height="0.3" position="0 -2 0.05" material="color: #1a1a2e; roughness: 0.9">
-                <a-text value="Девятый вал" align="center" color="#e0c97f" width="2.8" position="0 0.02 0.01"></a-text>
-                <a-text value="Иван Айвазовский" align="center" color="#aaa" width="2" position="0 -0.08 0.01"></a-text>
-            </a-plane>
+        <a-entity position="14.7 2.8 4" rotation="0 -90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4.5; maxHeight: 3.5">
         </a-entity>
 
-        <!-- Painting 9 -->
-        <a-entity class="painting-group" position="14.7 4.5 -2" rotation="0 -90 0">
-            <a-box width="4.5" height="3.2" depth="0.2" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-box width="4.2" height="2.9" depth="0.22" material="color: #DAA520; roughness: 0.4; metalness: 0.5"></a-box>
-            <a-box width="4.0" height="2.7" depth="0.24" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-plane width="3.8" height="2.5" position="0 0 0.13" material="src: #painting-9; roughness: 0.8"></a-plane>
-            <a-light type="spot" color="#FFF5E0" intensity="2" distance="5" angle="40" penumbra="0.5" position="0 2.5 1.5"></a-light>
-            <a-plane width="2.2" height="0.3" position="0 -2 0.05" material="color: #1a1a2e; roughness: 0.9">
-                <a-text value="Над вечным покоем" align="center" color="#e0c97f" width="3" position="0 0.02 0.01"></a-text>
-                <a-text value="Исаак Левитан" align="center" color="#aaa" width="2" position="0 -0.08 0.01"></a-text>
-            </a-plane>
+        <a-entity position="14.7 2.8 12" rotation="0 -90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
         </a-entity>
 
-        <!-- Painting 10 -->
-        <a-entity class="painting-group" position="14.7 4.5 6" rotation="0 -90 0">
-            <a-box width="4.5" height="3.2" depth="0.2" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-box width="4.2" height="2.9" depth="0.22" material="color: #DAA520; roughness: 0.4; metalness: 0.5"></a-box>
-            <a-box width="4.0" height="2.7" depth="0.24" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-plane width="3.8" height="2.5" position="0 0 0.13" material="src: #painting-10; roughness: 0.8"></a-plane>
-            <a-light type="spot" color="#FFF5E0" intensity="2" distance="5" angle="40" penumbra="0.5" position="0 2.5 1.5"></a-light>
-            <a-plane width="2.2" height="0.3" position="0 -2 0.05" material="color: #1a1a2e; roughness: 0.9">
-                <a-text value="Утро в сосновом лесу" align="center" color="#e0c97f" width="3.2" position="0 0.02 0.01"></a-text>
-                <a-text value="Шишкин и Савицкий" align="center" color="#aaa" width="2" position="0 -0.08 0.01"></a-text>
-            </a-plane>
-        </a-entity>
-
-        <!-- Painting 11 -->
-        <a-entity class="painting-group" position="14.7 4.5 14" rotation="0 -90 0">
-            <a-box width="3.2" height="3.7" depth="0.2" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-box width="2.9" height="3.4" depth="0.22" material="color: #DAA520; roughness: 0.4; metalness: 0.5"></a-box>
-            <a-box width="2.7" height="3.2" depth="0.24" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-plane width="2.5" height="3.0" position="0 0 0.13" material="src: #painting-11; roughness: 0.8"></a-plane>
-            <a-light type="spot" color="#FFF5E0" intensity="2" distance="5" angle="40" penumbra="0.5" position="0 2.5 1.5"></a-light>
-            <a-plane width="2.2" height="0.3" position="0 -2.2 0.05" material="color: #1a1a2e; roughness: 0.9">
-                <a-text value="Девушка с жемчужной серёжкой" align="center" color="#e0c97f" width="3.2" position="0 0.02 0.01"></a-text>
-                <a-text value="Ян Вермеер" align="center" color="#aaa" width="2" position="0 -0.08 0.01"></a-text>
-            </a-plane>
-        </a-entity>
-
-        <!-- Painting 12 -->
-        <a-entity class="painting-group" position="14.7 4.5 22" rotation="0 -90 0">
-            <a-box width="5.2" height="3.5" depth="0.2" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-box width="4.9" height="3.2" depth="0.22" material="color: #DAA520; roughness: 0.4; metalness: 0.5"></a-box>
-            <a-box width="4.7" height="3.0" depth="0.24" material="color: #8B6914; roughness: 0.3; metalness: 0.6"></a-box>
-            <a-plane width="4.5" height="2.8" position="0 0 0.13" material="src: #painting-12; roughness: 0.8"></a-plane>
-            <a-light type="spot" color="#FFF5E0" intensity="2" distance="5" angle="40" penumbra="0.5" position="0 2.5 1.5"></a-light>
-            <a-plane width="2.2" height="0.3" position="0 -2.1 0.05" material="color: #1a1a2e; roughness: 0.9">
-                <a-text value="Рождение Венеры" align="center" color="#e0c97f" width="3.2" position="0 0.02 0.01"></a-text>
-                <a-text value="Сандро Боттичелли" align="center" color="#aaa" width="2" position="0 -0.08 0.01"></a-text>
-            </a-plane>
+        <a-entity position="14.7 2.8 20" rotation="0 -90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 5; maxHeight: 3.5">
         </a-entity>
 
         <!-- ============ DECORATIVE ELEMENTS ============ -->
@@ -466,18 +598,18 @@
         </a-entity>
 
         <!-- ============ LIGHTING ============ -->
+        <!-- Brighter Ambient & Hemisphere for Global Illumination -->
+        <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
+        <a-light type="hemisphere" color="#fff" ground-color="#445" intensity="0.5"></a-light>
         
-        <!-- Ambient light -->
-        <a-light type="ambient" color="#334" intensity="0.4"></a-light>
+        <!-- Main Ceiling Lights (Brighter) -->
+        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 -20" decay="1.5" castShadow="true"></a-light>
+        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 -10" decay="1.5"></a-light>
+        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 0" decay="1.5"></a-light>
+        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 10" decay="1.5"></a-light>
+        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 20" decay="1.5"></a-light>
         
-        <!-- Main overhead lights -->
-        <a-light type="point" color="#FFF5E0" intensity="1.5" distance="20" position="0 7.5 -20" decay="1.5"></a-light>
-        <a-light type="point" color="#FFF5E0" intensity="1.5" distance="20" position="0 7.5 -10" decay="1.5"></a-light>
-        <a-light type="point" color="#FFF5E0" intensity="1.5" distance="20" position="0 7.5 0" decay="1.5"></a-light>
-        <a-light type="point" color="#FFF5E0" intensity="1.5" distance="20" position="0 7.5 10" decay="1.5"></a-light>
-        <a-light type="point" color="#FFF5E0" intensity="1.5" distance="20" position="0 7.5 20" decay="1.5"></a-light>
-        
-        <!-- Ceiling light fixtures (visual) -->
+        <!-- Ceiling light fixtures -->
         <a-entity position="0 7.7 -20">
             <a-cylinder radius="0.3" height="0.1" material="color: #e0c97f; metalness: 0.6; roughness: 0.3"></a-cylinder>
             <a-sphere radius="0.25" position="0 -0.2 0" material="color: #FFFDE7; emissive: #FFFDE7; emissiveIntensity: 0.5; opacity: 0.9"></a-sphere>
@@ -499,7 +631,7 @@
             <a-sphere radius="0.25" position="0 -0.2 0" material="color: #FFFDE7; emissive: #FFFDE7; emissiveIntensity: 0.5; opacity: 0.9"></a-sphere>
         </a-entity>
 
-        <!-- ============ ENTRANCE ARCH DECORATION ============ -->
+        <!-- ============ ENTRANCE ARCH ============ -->
         <a-box position="-5.1 3 25" width="0.3" height="6" depth="1" material="color: #d4c5a9; roughness: 0.4"></a-box>
         <a-box position="5.1 3 25" width="0.3" height="6" depth="1" material="color: #d4c5a9; roughness: 0.4"></a-box>
         <a-box position="0 6.1 25" width="10.5" height="0.4" depth="1" material="color: #d4c5a9; roughness: 0.4"></a-box>
@@ -507,70 +639,96 @@
 
         <!-- ============ ROPE BARRIERS ============ -->
         <!-- Left side rope posts -->
-        <a-entity class="rope-post" position="-13 0 -14">
+        <a-entity class="rope-post" position="-13 0 -16">
             <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
             <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
         </a-entity>
-        <a-entity class="rope-post" position="-13 0 -6">
+        <a-entity class="rope-post" position="-13 0 -8">
             <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
             <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
         </a-entity>
-        <a-entity class="rope-post" position="-13 0 2">
+        <a-entity class="rope-post" position="-13 0 0">
             <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
             <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
         </a-entity>
-        <a-entity class="rope-post" position="-13 0 10">
+        <a-entity class="rope-post" position="-13 0 8">
             <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
             <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
         </a-entity>
-        <a-entity class="rope-post" position="-13 0 18">
+        <a-entity class="rope-post" position="-13 0 16">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+        <a-entity class="rope-post" position="-13 0 24">
             <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
             <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
         </a-entity>
 
         <!-- Right side rope posts -->
-        <a-entity class="rope-post" position="13 0 -14">
+        <a-entity class="rope-post" position="13 0 -16">
             <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
             <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
         </a-entity>
-        <a-entity class="rope-post" position="13 0 -6">
+        <a-entity class="rope-post" position="13 0 -8">
             <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
             <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
         </a-entity>
-        <a-entity class="rope-post" position="13 0 2">
+        <a-entity class="rope-post" position="13 0 0">
             <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
             <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
         </a-entity>
-        <a-entity class="rope-post" position="13 0 10">
+        <a-entity class="rope-post" position="13 0 8">
             <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
             <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
         </a-entity>
-        <a-entity class="rope-post" position="13 0 18">
+        <a-entity class="rope-post" position="13 0 16">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+        <a-entity class="rope-post" position="13 0 24">
             <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
             <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
         </a-entity>
 
         <!-- Rope connectors (left) -->
-        <a-cylinder position="-13 1.1 -10" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="-13 1.1 -2" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="-13 1.1 6" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="-13 1.1 14" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="-13 1.1 -12" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="-13 1.1 -4" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="-13 1.1 4" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="-13 1.1 12" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="-13 1.1 20" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
 
         <!-- Rope connectors (right) -->
-        <a-cylinder position="13 1.1 -10" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="13 1.1 -2" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="13 1.1 6" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="13 1.1 14" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="13 1.1 -12" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="13 1.1 -4" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="13 1.1 4" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="13 1.1 12" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="13 1.1 20" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+
+        <!-- Dust particles -->
+        <a-entity dust-particles></a-entity>
 
         <!-- ============ CAMERA / PLAYER ============ -->
         <a-entity id="rig" position="0 0 22" rotation="0 180 0">
             <a-entity
                 id="camera"
-                camera
+                camera="near: 0.05; far: 200"
                 look-controls="pointerLockEnabled: true"
                 wasd-controls="acceleration: 30"
                 position="0 1.7 0"
             >
+                <a-cursor
+                    id="cursor"
+                    fuse="false"
+                    raycaster="objects: .clickable; far: 20"
+                    color="#e0c97f"
+                    scale="1 1 1"
+                    geometry="primitive: ring; radiusInner: 0.005; radiusOuter: 0.01"
+                    material="shader: flat; opacity: 0.8"
+                    animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
+                    animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1"
+                    animation__mouseenter="property: scale; startEvents: mouseenter; easing: easeInCubic; dur: 500; to: 1.5 1.5 1.5"
+                    animation__mouseleave="property: scale; startEvents: mouseleave; easing: easeInCubic; dur: 500; to: 1 1 1"
+                ></a-cursor>
             </a-entity>
         </a-entity>
 
@@ -589,7 +747,6 @@
             }, 1500);
         });
 
-        // Fallback: show enter button after 5 seconds regardless
         setTimeout(() => {
             enterBtn.style.display = 'block';
             document.querySelector('.loader').style.display = 'none';
@@ -601,7 +758,6 @@
                 loadingScreen.style.display = 'none';
             }, 1000);
 
-            // Request pointer lock for better controls
             const canvas = scene.canvas;
             if (canvas) {
                 canvas.addEventListener('click', () => {
@@ -610,42 +766,16 @@
             }
         }
 
-        // Ambient sound simulation with footstep feedback
-        let lastPos = { x: 0, z: 0 };
-        
-        // Particle dust effect (floating particles in the museum)
-        AFRAME.registerComponent('dust-particles', {
-            init: function () {
-                for (let i = 0; i < 50; i++) {
-                    const particle = document.createElement('a-sphere');
-                    particle.setAttribute('radius', Math.random() * 0.02 + 0.005);
-                    particle.setAttribute('position', {
-                        x: (Math.random() - 0.5) * 28,
-                        y: Math.random() * 7 + 0.5,
-                        z: (Math.random() - 0.5) * 48
-                    });
-                    particle.setAttribute('material', {
-                        color: '#FFF8E7',
-                        opacity: Math.random() * 0.3 + 0.1,
-                        transparent: true
-                    });
-                    particle.setAttribute('animation', {
-                        property: 'position.y',
-                        dir: 'alternate',
-                        dur: Math.random() * 5000 + 3000,
-                        easing: 'easeInOutSine',
-                        loop: true,
-                        to: Math.random() * 7 + 0.5
-                    });
-                    this.el.appendChild(particle);
-                }
+        // Boost renderer quality after scene loads
+        scene.addEventListener('loaded', () => {
+            const renderer = scene.renderer;
+            if (renderer) {
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                renderer.outputColorSpace = THREE.SRGBColorSpace;
+                renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                renderer.toneMappingExposure = 1.2;
             }
         });
-
-        // Add dust particles to scene
-        const dustEntity = document.createElement('a-entity');
-        dustEntity.setAttribute('dust-particles', '');
-        scene.appendChild(dustEntity);
 
         // Hide info panel after 8 seconds
         setTimeout(() => {
