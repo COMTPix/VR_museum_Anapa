@@ -1,67 +1,82 @@
 import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 
-/* ───────────────── Intersection Observer Hook ───────────────── */
-function useInView(threshold = 0.1) {
+/* ───────────────────── Intersection Observer Hook ───────────────────── */
+function useInView(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      ([e]) => {
+        if (e.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
       { threshold }
     );
     obs.observe(el);
     return () => obs.disconnect();
   }, [threshold]);
+
   return { ref, visible };
 }
 
-/* ───────────────── Reveal Wrapper ───────────────── */
-function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
+/* ───────────────────── Reveal wrapper ───────────────────── */
+function Reveal({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
   const { ref, visible } = useInView();
   return (
     <div
       ref={ref}
-      style={{
-        transition: `opacity 0.7s ease ${delay}ms, transform 0.7s ease ${delay}ms`,
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(40px)",
-      }}
+      className={`transition-all duration-700 ease-out ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+      } ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
     </div>
   );
 }
 
-/* ───────────────── Particles ───────────────── */
+/* ───────────────────── Particle background ───────────────────── */
 function Particles({ count = 30 }: { count?: number }) {
   const items = useMemo(
     () =>
       Array.from({ length: count }, (_, i) => ({
         id: i,
-        left: Math.random() * 100,
+        left: `${Math.random() * 100}%`,
         size: 1 + Math.random() * 3,
-        dur: 8 + Math.random() * 14,
-        del: Math.random() * 10,
-        op: 0.15 + Math.random() * 0.5,
+        duration: 8 + Math.random() * 14,
+        delay: Math.random() * 10,
+        opacity: 0.15 + Math.random() * 0.5,
       })),
     [count]
   );
+
   return (
-    <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {items.map((p) => (
         <span
           key={p.id}
           className="particle"
           style={{
-            left: `${p.left}%`,
+            left: p.left,
             bottom: "-10px",
             width: p.size,
             height: p.size,
-            opacity: p.op,
-            animationDuration: `${p.dur}s`,
-            animationDelay: `${p.del}s`,
+            opacity: p.opacity,
+            animationDuration: `${p.duration}s`,
+            animationDelay: `${p.delay}s`,
           }}
         />
       ))}
@@ -69,69 +84,98 @@ function Particles({ count = 30 }: { count?: number }) {
   );
 }
 
-/* ───────────────── VR Icon ───────────────── */
+/* ───────────────────── VR icon (headset) ───────────────────── */
 function VRIcon({ size = 24 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M2 10a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4l-2 2-2-2H4a2 2 0 0 1-2-2v-4z" />
-      <circle cx="8" cy="12" r="2" /><circle cx="16" cy="12" r="2" />
+      <circle cx="8" cy="12" r="2" />
+      <circle cx="16" cy="12" r="2" />
     </svg>
   );
 }
 
-/* ───────────────── Data ───────────────── */
+/* ───────────────────── Data ───────────────────── */
 const HISTORY = [
-  { year: "1783–1784", title: "Строительство крепости", text: "После присоединения Крыма к Российской империи в 1783 году Османская империя укрепляет позиции на Кавказском побережье. В 1783–1784 годах по проекту французских инженеров возводится мощная крепость Анапа — ключевой оборонительный узел, контролирующий северо-восточное побережье Чёрного моря." },
-  { year: "22 июня 1791", title: "Штурм Гудовича", text: "В ходе русско-турецкой войны 1787–1791 годов генерал-аншеф И. В. Гудович предпринимает решительный штурм крепости Анапа. После ожесточённого боя гарнизон капитулирует. Однако по условиям Ясского мирного договора 1791 года крепость возвращена Османской империи." },
-  { year: "1807", title: "Второе взятие", text: "Во время русско-турецкой войны 1806–1812 годов русские войска при поддержке Черноморского флота вновь занимают Анапу. По условиям Бухарестского мирного договора 1812 года крепость снова передаётся Турции." },
-  { year: "12 июня 1828", title: "Окончательное освобождение", text: "В ходе русско-турецкой войны 1828–1829 годов русские войска в третий и последний раз берут крепость Анапа. По Адрианопольскому мирному договору 1829 года Анапа навсегда входит в состав Российской империи." },
-  { year: "Наши дни", title: "«Русские ворота» — памятник истории", text: "До наших дней сохранился единственный фрагмент турецкой крепости — ворота, получившие название «Русские ворота» в честь освобождения города. Сегодня это памятник истории и одна из главных достопримечательностей Анапы." },
+  {
+    year: "1783–1784",
+    title: "Строительство крепости",
+    text: "После присоединения Крыма к Российской империи в 1783 году Османская империя укрепляет свои позиции на Кавказском побережье. В 1783–1784 годах по проекту французских военных инженеров возводится мощная крепость Анапа — ключевой оборонительный узел, контролирующий северо-восточное побережье Чёрного моря.",
+  },
+  {
+    year: "22 июня 1791",
+    title: "Штурм Гудовича",
+    text: "В ходе русско-турецкой войны 1787–1791 годов генерал-аншеф И. В. Гудович предпринимает решительный штурм крепости Анапа. После ожесточённого боя гарнизон капитулирует. Однако по условиям Ясского мирного договора (1791) крепость возвращена Османской империи.",
+  },
+  {
+    year: "1807",
+    title: "Второе взятие",
+    text: "Во время русско-турецкой войны 1806–1812 годов русские войска при поддержке Черноморского флота вновь занимают Анапу. Тем не менее, по условиям Бухарестского мирного договора 1812 года, крепость снова передаётся Турции.",
+  },
+  {
+    year: "12 июня 1828",
+    title: "Окончательное освобождение",
+    text: "В ходе русско-турецкой войны 1828–1829 годов русские войска в третий и последний раз берут крепость Анапа. По Адрианопольскому мирному договору 1829 года Анапа навсегда входит в состав Российской империи.",
+  },
+  {
+    year: "Наши дни",
+    title: "«Русские ворота» — памятник истории",
+    text: "До наших дней сохранился единственный фрагмент турецкой крепости — ворота, получившие название «Русские ворота» в честь освобождения города. Сегодня это памятник истории и одна из главных достопримечательностей Анапы.",
+  },
 ];
 
 const CONTROLS = [
-  { icon: "🖱️", title: "Осмотр", desc: "Зажмите левую кнопку мыши и перемещайте курсор, чтобы осматривать пространство вокруг себя." },
-  { icon: "⌨️", title: "Перемещение", desc: "Используйте клавиши W, A, S, D или стрелки для передвижения по территории крепости." },
-  { icon: "🎯", title: "Экспонаты", desc: "Наведите курсор на светящиеся точки и нажмите ЛКМ, чтобы узнать подробности об объекте." },
-  { icon: "🥽", title: "VR-режим", desc: "Подключите VR-шлем и нажмите «Enter VR» для полного погружения в виртуальную реальность." },
+  {
+    icon: "🖱️",
+    title: "Осмотр",
+    desc: "Зажмите левую кнопку мыши и перемещайте курсор, чтобы осматривать пространство вокруг себя",
+  },
+  {
+    icon: "⌨️",
+    title: "Перемещение",
+    desc: "Используйте клавиши W, A, S, D или стрелки для передвижения по территории крепости",
+  },
+  {
+    icon: "🎯",
+    title: "Экспонаты",
+    desc: "Наведите курсор на светящиеся информационные точки и нажмите ЛКМ, чтобы узнать подробности",
+  },
+  {
+    icon: "🥽",
+    title: "VR-режим",
+    desc: "Подключите VR-шлем и нажмите кнопку «Enter VR» для полного погружения в виртуальную реальность",
+  },
 ];
 
 const AUTHORS = [
-  { name: "Быков Артём Денисович", initials: "БА", role: "Разработчик" },
-  { name: "Кудрявцев Владимир Олегович", initials: "КВ", role: "Разработчик" },
+  {
+    name: "Быков Артём Денисович",
+    initials: "БАД",
+    role: "Разработчик",
+  },
+  {
+    name: "Кудрявцев Владимир Олегович",
+    initials: "КВО",
+    role: "Разработчик",
+  },
 ];
 
-const LINKS: [string, string][] = [["#history", "История"], ["#controls", "Управление"], ["#authors", "Авторы"]];
+const NAV_LINKS: [string, string][] = [
+  ["#history", "История"],
+  ["#controls", "Управление"],
+  ["#authors", "Авторы"],
+];
 
-/* ────── Styles ────── */
-const C = {
-  bg: "#060B18",
-  gold: "#f59e0b",
-  darkGold: "#d97706",
-  textMain: "#f3f4f6",
-  textSub: "#9ca3af",
-  textMuted: "#6b7280",
-  textDim: "#4b5563",
-  borderFaint: "rgba(255,255,255,0.06)",
-  borderGold: "rgba(245,158,11,0.15)",
-  bgCard: "rgba(255,255,255,0.02)",
-};
-
-const gradientGold = `linear-gradient(90deg, ${C.gold}, ${C.darkGold})`;
-
-const btnStyle: React.CSSProperties = {
-  background: gradientGold,
-  color: C.bg,
-  boxShadow: "0 8px 40px rgba(245,158,11,0.25)",
-  border: "none",
-  cursor: "pointer",
-  textDecoration: "none",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "12px",
-  fontWeight: 700,
-};
-
-/* ═══════════════════ APP ═══════════════════ */
+/* ───────────────────── App ───────────────────── */
 export function App() {
   const [scrollY, setScrollY] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -145,182 +189,357 @@ export function App() {
   const navSolid = scrollY > 60;
 
   return (
-    <div style={{ background: C.bg, color: C.textMain, fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", minHeight: "100vh", overflowX: "hidden" }}>
-
-      {/* ════════ NAV ════════ */}
-      <nav style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
-        background: navSolid ? "rgba(6,11,24,0.95)" : "transparent",
-        backdropFilter: navSolid ? "blur(16px)" : "none",
-        borderBottom: navSolid ? "1px solid rgba(255,255,255,0.05)" : "none",
-        transition: "all 0.3s",
-      }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <a href="#hero" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
-              background: gradientGold, color: C.bg, fontWeight: 800, fontSize: 18,
-              boxShadow: "0 4px 20px rgba(245,158,11,0.2)",
-            }}>А</div>
-            <span style={{ color: "#fff", fontWeight: 600, fontSize: 18 }}>
-              <span style={{ color: C.gold }}>VR</span> Музей Анапа
+    <div
+      className="min-h-screen text-gray-100 font-sans selection:bg-amber-500/30 selection:text-white"
+      style={{ background: "#060B18" }}
+    >
+      {/* ═══════════ NAVBAR ═══════════ */}
+      <nav
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+          navSolid
+            ? "backdrop-blur-xl shadow-lg shadow-black/30 border-b border-white/5"
+            : "bg-transparent"
+        }`}
+        style={navSolid ? { background: "rgba(6,11,24,0.92)" } : undefined}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <a href="#hero" className="group flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-lg font-extrabold shadow-lg transition-shadow group-hover:shadow-amber-500/40"
+              style={{
+                background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                color: "#060B18",
+                boxShadow: "0 4px 20px rgba(245,158,11,0.2)",
+              }}
+            >
+              А
+            </div>
+            <span className="hidden text-lg font-semibold tracking-tight sm:block">
+              <span style={{ color: "#f59e0b" }}>VR</span> Музей Анапа
             </span>
           </a>
 
-          {/* Desktop links */}
-          <div style={{ display: "flex", alignItems: "center", gap: 32 }} className="nav-desktop">
-            {LINKS.map(([href, label]) => (
-              <a key={href} href={href} style={{ color: C.textSub, textDecoration: "none", fontSize: 14, transition: "color 0.2s" }}
-                onMouseEnter={e => (e.currentTarget.style.color = C.gold)}
-                onMouseLeave={e => (e.currentTarget.style.color = C.textSub)}
-              >{label}</a>
+          <div className="hidden items-center gap-8 md:flex">
+            {NAV_LINKS.map(([href, label]) => (
+              <a
+                key={href}
+                href={href}
+                className="text-sm transition-colors hover:text-amber-400"
+                style={{ color: "#9ca3af" }}
+              >
+                {label}
+              </a>
             ))}
-            <a href="#enter-vr" className="glow-btn" style={{ ...btnStyle, padding: "10px 22px", borderRadius: 10, fontSize: 14 }}>
+            <a
+              href="#enter-vr"
+              className="glow-button rounded-lg px-5 py-2.5 text-sm font-bold shadow-lg transition-all hover:scale-105"
+              style={{
+                background: "linear-gradient(90deg, #f59e0b, #d97706)",
+                color: "#060B18",
+                boxShadow: "0 4px 20px rgba(245,158,11,0.2)",
+              }}
+            >
               Войти в музей
             </a>
           </div>
 
-          {/* Mobile burger */}
-          <button className="nav-burger" onClick={() => setMenuOpen(!menuOpen)} style={{
-            background: "none", border: "none", color: C.textSub, cursor: "pointer", padding: 8,
-          }} aria-label="Меню">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              {menuOpen ? <path d="M18 6 6 18M6 6l12 12" /> : <><path d="M4 6h16" /><path d="M4 12h16" /><path d="M4 18h16" /></>}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-2 hover:text-white md:hidden"
+            style={{ color: "#9ca3af" }}
+            aria-label="Меню"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              {menuOpen ? (
+                <path d="M18 6 6 18M6 6l12 12" />
+              ) : (
+                <>
+                  <path d="M4 6h16" />
+                  <path d="M4 12h16" />
+                  <path d="M4 18h16" />
+                </>
+              )}
             </svg>
           </button>
         </div>
 
-        {/* Mobile menu */}
         {menuOpen && (
-          <div style={{ background: "rgba(11,17,32,0.98)", borderTop: "1px solid rgba(255,255,255,0.05)", padding: "16px 24px" }} className="nav-mobile-menu">
-            {LINKS.map(([href, label]) => (
-              <a key={href} href={href} onClick={() => setMenuOpen(false)}
-                style={{ display: "block", padding: "14px 0", color: "#d1d5db", textDecoration: "none", fontSize: 16 }}
-              >{label}</a>
+          <div
+            className="border-t border-white/5 px-6 py-4 backdrop-blur-xl md:hidden"
+            style={{ background: "rgba(11,17,32,0.98)" }}
+          >
+            {NAV_LINKS.map(([href, label]) => (
+              <a
+                key={href}
+                href={href}
+                onClick={() => setMenuOpen(false)}
+                className="block py-3 transition-colors hover:text-amber-400"
+                style={{ color: "#d1d5db" }}
+              >
+                {label}
+              </a>
             ))}
-            <a href="#enter-vr" onClick={() => setMenuOpen(false)}
-              style={{ display: "block", marginTop: 12, padding: "14px 0", textAlign: "center", borderRadius: 10, background: gradientGold, color: C.bg, fontWeight: 700, textDecoration: "none" }}
-            >Войти в музей</a>
+            <a
+              href="#enter-vr"
+              onClick={() => setMenuOpen(false)}
+              className="mt-3 block rounded-lg py-3 text-center font-bold"
+              style={{
+                background: "linear-gradient(90deg, #f59e0b, #d97706)",
+                color: "#060B18",
+              }}
+            >
+              Войти в музей
+            </a>
           </div>
         )}
       </nav>
 
-      {/* ════════ HERO ════════ */}
-      <section id="hero" style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-        {/* BG layers */}
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, ${C.bg}, #0a1628, ${C.bg})` }} />
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: "radial-gradient(circle at 25% 40%, rgba(217,164,48,0.08) 0%, transparent 55%), radial-gradient(circle at 75% 60%, rgba(217,164,48,0.06) 0%, transparent 45%)",
-          transform: `translateY(${scrollY * 0.15}px)`,
-        }} />
-        {/* Grid subtle */}
-        <div style={{
-          position: "absolute", inset: 0, opacity: 0.03,
-          backgroundImage: "linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px), linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px)",
-          backgroundSize: "80px 80px",
-        }} />
-        <Particles />
+      {/* ═══════════ HERO ═══════════ */}
+      <section
+        id="hero"
+        className="relative flex min-h-screen items-center justify-center overflow-hidden"
+      >
+        <div className="absolute inset-0">
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to bottom, #060B18, #0a1628, #060B18)",
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 25% 40%, rgba(217,164,48,0.08) 0%, transparent 55%), radial-gradient(circle at 75% 60%, rgba(217,164,48,0.06) 0%, transparent 45%)",
+              transform: `translateY(${scrollY * 0.15}px)`,
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px)",
+              backgroundSize: "80px 80px",
+              opacity: 0.03,
+            }}
+          />
+          <Particles count={30} />
+        </div>
 
-        <div style={{ position: "relative", zIndex: 10, maxWidth: 900, margin: "0 auto", padding: "0 24px", textAlign: "center" }}>
+        <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
           <Reveal>
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 999, padding: "10px 20px",
-              border: `1px solid rgba(245,158,11,0.2)`, background: "rgba(245,158,11,0.05)", color: C.gold, fontSize: 14, marginBottom: 32,
-            }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.gold, animation: "pulse 2s infinite" }} />
+            <div
+              className="mb-8 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm"
+              style={{
+                border: "1px solid rgba(245,158,11,0.2)",
+                background: "rgba(245,158,11,0.05)",
+                color: "#f59e0b",
+              }}
+            >
+              <span
+                className="h-2 w-2 rounded-full animate-pulse"
+                style={{ background: "#f59e0b" }}
+              />
               Виртуальная реальность
             </div>
           </Reveal>
 
           <Reveal delay={120}>
-            <h1 style={{ fontSize: "clamp(3rem, 8vw, 6rem)", fontWeight: 800, lineHeight: 1.05, margin: "0 0 24px" }}>
-              <span style={{ background: "linear-gradient(90deg,#fff,#e5e7eb,#9ca3af)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            <h1 className="mb-6 text-5xl font-extrabold leading-tight tracking-tight sm:text-7xl lg:text-8xl">
+              <span
+                style={{
+                  background:
+                    "linear-gradient(90deg, #fff, #e5e7eb, #9ca3af)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
                 Крепость
               </span>
               <br />
-              <span style={{ background: `linear-gradient(90deg,#fbbf24,${C.gold},${C.darkGold})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              <span
+                style={{
+                  background:
+                    "linear-gradient(90deg, #fbbf24, #f59e0b, #d97706)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
                 Анапа
               </span>
             </h1>
           </Reveal>
 
           <Reveal delay={240}>
-            <p style={{ color: C.textSub, fontSize: "clamp(1rem, 2.5vw, 1.25rem)", maxWidth: 620, margin: "0 auto 48px", lineHeight: 1.7 }}>
-              Погрузитесь в историю русско-турецких войн XVIII–XIX&nbsp;веков
+            <p
+              className="mx-auto mb-12 max-w-2xl text-lg leading-relaxed sm:text-xl"
+              style={{ color: "#9ca3af" }}
+            >
+              Погрузитесь в историю русско-турецких войн XVIII–XIX веков
               и&nbsp;исследуйте легендарную крепость в виртуальной реальности
             </p>
           </Reveal>
 
           <Reveal delay={360}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center" }}>
-              <a href="#enter-vr" className="glow-btn" style={{ ...btnStyle, padding: "18px 40px", borderRadius: 14, fontSize: 18 }}>
-                <VRIcon size={24} /> Войти в VR музей
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <a
+                href="#enter-vr"
+                className="glow-button group inline-flex items-center gap-3 rounded-xl px-9 py-4 text-lg font-bold shadow-2xl transition-all hover:scale-105"
+                style={{
+                  background: "linear-gradient(90deg, #f59e0b, #d97706)",
+                  color: "#060B18",
+                  boxShadow: "0 8px 40px rgba(245,158,11,0.25)",
+                }}
+              >
+                <VRIcon size={24} />
+                Войти в VR музей
               </a>
-              <a href="#history" style={{
-                display: "inline-flex", alignItems: "center", gap: 8, padding: "18px 32px", borderRadius: 14,
-                border: "1px solid rgba(255,255,255,0.1)", color: "#d1d5db", textDecoration: "none", fontWeight: 500, transition: "background 0.2s",
-              }}
-                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              <a
+                href="#history"
+                className="inline-flex items-center gap-2 rounded-xl border px-8 py-4 font-medium transition-all hover:bg-white/5"
+                style={{
+                  borderColor: "rgba(255,255,255,0.1)",
+                  color: "#d1d5db",
+                }}
               >
                 Узнать историю
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M19 12l-7 7-7-7" /></svg>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M12 5v14M19 12l-7 7-7-7" />
+                </svg>
               </a>
             </div>
           </Reveal>
         </div>
 
-        {/* Scroll hint */}
-        <div style={{ position: "absolute", bottom: 32, left: "50%", transform: "translateX(-50%)", textAlign: "center", color: C.textDim, fontSize: 12, animation: "bounce 2s infinite" }}>
+        <div
+          className="absolute bottom-8 left-1/2 flex -translate-x-1/2 animate-bounce flex-col items-center gap-2 text-xs"
+          style={{ color: "#4b5563" }}
+        >
           <span>Листайте вниз</span>
-          <br />
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginTop: 4 }}><path d="M12 5v14M19 12l-7 7-7-7" /></svg>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M12 5v14M19 12l-7 7-7-7" />
+          </svg>
         </div>
       </section>
 
-      {/* ════════ QUOTE — HIGHLIGHTED ════════ */}
-      <section style={{
-        position: "relative", padding: "100px 0", overflow: "hidden",
-      }}>
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, #0f172a 0%, #1e1a0e 50%, #0f172a 100%)" }} />
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(ellipse at 50% 50%, rgba(245,158,11,0.12) 0%, transparent 60%)" }} />
-        {/* Top / bottom gold lines */}
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)" }} />
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1, background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)" }} />
+      {/* ═══════════ QUOTE — выделенная секция ═══════════ */}
+      <section className="relative py-24 sm:py-32 overflow-hidden">
+        {/* Яркий градиентный фон для выделения */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(135deg, #0f172a 0%, #1e1a0e 50%, #0f172a 100%)",
+          }}
+        />
+        {/* Свечение по центру */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse at 50% 50%, rgba(245,158,11,0.12) 0%, transparent 60%)",
+          }}
+        />
+        {/* Декоративные линии сверху и снизу */}
+        <div
+          className="absolute top-0 left-0 right-0 h-px"
+          style={{
+            background:
+              "linear-gradient(90deg, transparent, rgba(245,158,11,0.4), transparent)",
+          }}
+        />
+        <div
+          className="absolute bottom-0 left-0 right-0 h-px"
+          style={{
+            background:
+              "linear-gradient(90deg, transparent, rgba(245,158,11,0.4), transparent)",
+          }}
+        />
 
-        <div style={{ position: "relative", zIndex: 10, maxWidth: 800, margin: "0 auto", padding: "0 24px" }}>
+        <div className="relative z-10 mx-auto max-w-4xl px-6">
           <Reveal>
-            <div style={{
-              borderRadius: 24, padding: "clamp(40px, 5vw, 60px)", textAlign: "center",
-              background: "linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(245,158,11,0.02) 100%)",
-              border: "1px solid rgba(245,158,11,0.18)",
-              boxShadow: "0 0 80px rgba(245,158,11,0.08), inset 0 1px 0 rgba(245,158,11,0.1)",
-            }}>
-              {/* Quote icon */}
-              <div style={{
-                width: 64, height: 64, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-                background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)", margin: "0 auto 24px",
-              }}>
-                <span style={{ color: C.gold, fontSize: 36, fontFamily: "serif", lineHeight: 1 }}>«</span>
+            <div
+              className="rounded-3xl p-10 sm:p-14 text-center"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(245,158,11,0.02) 100%)",
+                border: "1px solid rgba(245,158,11,0.15)",
+                boxShadow:
+                  "0 0 80px rgba(245,158,11,0.08), inset 0 1px 0 rgba(245,158,11,0.1)",
+              }}
+            >
+              {/* Большая кавычка */}
+              <div
+                className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full"
+                style={{
+                  background: "rgba(245,158,11,0.1)",
+                  border: "1px solid rgba(245,158,11,0.2)",
+                }}
+              >
+                <span
+                  className="text-4xl font-serif leading-none"
+                  style={{ color: "#f59e0b" }}
+                >
+                  «
+                </span>
               </div>
 
-              <blockquote style={{ margin: 0 }}>
-                <p style={{ fontSize: "clamp(1.5rem, 4vw, 2.25rem)", fontWeight: 300, fontStyle: "italic", lineHeight: 1.4, color: C.textMain }}>
+              <blockquote>
+                <p
+                  className="text-2xl sm:text-3xl lg:text-4xl font-light italic leading-snug"
+                  style={{ color: "#f3f4f6" }}
+                >
                   История — это учительница жизни
                 </p>
               </blockquote>
 
-              {/* Divider */}
-              <div style={{ width: 80, height: 1, margin: "32px auto", background: "linear-gradient(90deg, transparent, #f59e0b, transparent)" }} />
+              {/* Разделительная линия */}
+              <div
+                className="mx-auto my-8 w-20 h-px"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent, #f59e0b, transparent)",
+                }}
+              />
 
-              {/* Author */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                <span style={{ color: C.gold, fontSize: 18, fontWeight: 600 }}>Марк Туллий Цицерон</span>
-                <p style={{ color: C.textMuted, fontSize: 14, maxWidth: 480, lineHeight: 1.7, margin: 0 }}>
-                  Древнеримский политик, оратор и философ (106–43 до&nbsp;н.&nbsp;э.).
-                  Один из величайших ораторов античности, консул Римской республики.
-                  Его труды оказали огромное влияние на европейскую философию и риторику.
+              {/* Автор цитаты */}
+              <div className="flex flex-col items-center gap-2">
+                <span
+                  className="text-lg font-semibold"
+                  style={{ color: "#f59e0b" }}
+                >
+                  Марк Туллий Цицерон
+                </span>
+                <p
+                  className="max-w-lg text-sm leading-relaxed"
+                  style={{ color: "#6b7280" }}
+                >
+                  Древнеримский политик, оратор и философ (106–43 до н. э.).
+                  Один из величайших ораторов античности, консул Римской
+                  республики. Его труды оказали огромное влияние на европейскую
+                  философию и риторику.
                 </p>
               </div>
             </div>
@@ -328,95 +547,150 @@ export function App() {
         </div>
       </section>
 
-      {/* ════════ HISTORY ════════ */}
-      <section id="history" style={{ position: "relative", padding: "100px 0" }}>
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, ${C.bg}, #080e1f, ${C.bg})` }} />
+      {/* ═══════════ HISTORY ═══════════ */}
+      <section id="history" className="relative py-24 sm:py-32">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, #060B18, #080e1f, #060B18)",
+          }}
+        />
 
-        <div style={{ position: "relative", zIndex: 10, maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
           <Reveal>
-            <div style={{ textAlign: "center", marginBottom: 72 }}>
-              <span style={{ color: C.gold, fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: 3 }}>Хроника событий</span>
-              <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)", fontWeight: 700, marginTop: 16, marginBottom: 20 }}>
-                История <span style={{ color: C.gold }}>крепости&nbsp;Анапа</span>
+            <div className="mb-16 text-center sm:mb-20">
+              <span
+                className="text-sm font-semibold uppercase tracking-widest"
+                style={{ color: "#f59e0b" }}
+              >
+                Хроника событий
+              </span>
+              <h2 className="mt-4 mb-6 text-3xl font-bold sm:text-4xl lg:text-5xl">
+                История{" "}
+                <span style={{ color: "#f59e0b" }}>крепости&nbsp;Анапа</span>
               </h2>
-              <p style={{ color: C.textSub, fontSize: 18, maxWidth: 640, margin: "0 auto", lineHeight: 1.7 }}>
-                Крепость Анапа трижды переходила из рук в руки в ходе русско-турецких войн, прежде чем окончательно войти в состав Российской империи
+              <p
+                className="mx-auto max-w-2xl text-lg"
+                style={{ color: "#9ca3af" }}
+              >
+                Крепость Анапа трижды переходила из рук в руки в ходе
+                русско-турецких войн, прежде чем окончательно войти в состав
+                Российской империи
               </p>
             </div>
           </Reveal>
 
-          {/* Timeline */}
-          <div style={{ position: "relative" }}>
-            {/* Line */}
-            <div className="timeline-line" style={{
-              position: "absolute", top: 0, bottom: 0, width: 2,
-              background: "linear-gradient(to bottom, transparent, rgba(245,158,11,0.3), transparent)",
-            }} />
+          <div className="relative">
+            <div
+              className="absolute left-5 top-0 bottom-0 w-px sm:left-1/2 sm:-translate-x-px"
+              style={{
+                background:
+                  "linear-gradient(to bottom, transparent, rgba(245,158,11,0.3), transparent)",
+              }}
+            />
 
-            {HISTORY.map((ev, i) => (
-              <Reveal key={i} delay={i * 80}>
-                <div className={`timeline-item ${i % 2 === 0 ? "tl-left" : "tl-right"}`} style={{ position: "relative", marginBottom: 60, display: "flex" }}>
-                  {/* Dot */}
-                  <div className="timeline-dot" style={{
-                    position: "absolute", width: 16, height: 16, borderRadius: "50%",
-                    background: C.gold, border: `4px solid ${C.bg}`, boxShadow: "0 0 20px rgba(245,158,11,0.4)", zIndex: 5,
-                  }} />
+            {HISTORY.map((ev, i) => {
+              const isLeft = i % 2 === 0;
+              return (
+                <Reveal key={i} delay={i * 80}>
+                  <div
+                    className={`relative mb-14 flex flex-col sm:mb-16 sm:flex-row ${
+                      isLeft ? "sm:flex-row" : "sm:flex-row-reverse"
+                    }`}
+                  >
+                    <div
+                      className="absolute left-5 z-10 mt-1.5 h-4 w-4 -translate-x-1/2 rounded-full sm:left-1/2"
+                      style={{
+                        background: "#f59e0b",
+                        border: "4px solid #060B18",
+                        boxShadow: "0 0 20px rgba(245,158,11,0.4)",
+                      }}
+                    />
 
-                  <div className="timeline-content">
-                    <span style={{
-                      display: "inline-block", padding: "4px 14px", borderRadius: 8, fontSize: 14, fontWeight: 700,
-                      background: "rgba(245,158,11,0.1)", color: C.gold, marginBottom: 12,
-                    }}>{ev.year}</span>
-                    <h3 style={{ fontSize: "clamp(1.1rem, 2vw, 1.5rem)", fontWeight: 700, marginBottom: 12 }}>{ev.title}</h3>
-                    <p style={{ color: C.textSub, lineHeight: 1.75, margin: 0, fontSize: 15 }}>{ev.text}</p>
+                    <div
+                      className={`pl-12 sm:w-1/2 sm:pl-0 ${
+                        isLeft ? "sm:pr-16 sm:text-right" : "sm:pl-16"
+                      }`}
+                    >
+                      <span
+                        className="mb-3 inline-block rounded-md px-3 py-1 text-sm font-bold"
+                        style={{
+                          background: "rgba(245,158,11,0.1)",
+                          color: "#f59e0b",
+                        }}
+                      >
+                        {ev.year}
+                      </span>
+                      <h3 className="mb-3 text-xl font-bold sm:text-2xl">
+                        {ev.title}
+                      </h3>
+                      <p className="leading-relaxed" style={{ color: "#9ca3af" }}>
+                        {ev.text}
+                      </p>
+                    </div>
+
+                    <div className="hidden sm:block sm:w-1/2" />
                   </div>
-                </div>
-              </Reveal>
-            ))}
+                </Reveal>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* ════════ CONTROLS ════════ */}
-      <section id="controls" style={{ position: "relative", padding: "100px 0" }}>
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, ${C.bg}, #0a1225, ${C.bg})` }} />
-        <div style={{ position: "relative", zIndex: 10, maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
+      {/* ═══════════ CONTROLS ═══════════ */}
+      <section id="controls" className="relative py-24 sm:py-32">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, #060B18, #0a1225, #060B18)",
+          }}
+        />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
           <Reveal>
-            <div style={{ textAlign: "center", marginBottom: 64 }}>
-              <span style={{ color: C.gold, fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: 3 }}>Инструкция</span>
-              <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)", fontWeight: 700, marginTop: 16, marginBottom: 20 }}>
-                Управление в <span style={{ color: C.gold }}>музее</span>
+            <div className="mb-16 text-center">
+              <span
+                className="text-sm font-semibold uppercase tracking-widest"
+                style={{ color: "#f59e0b" }}
+              >
+                Инструкция
+              </span>
+              <h2 className="mt-4 mb-6 text-3xl font-bold sm:text-4xl lg:text-5xl">
+                Управление в{" "}
+                <span style={{ color: "#f59e0b" }}>музее</span>
               </h2>
-              <p style={{ color: C.textSub, fontSize: 18, maxWidth: 600, margin: "0 auto" }}>
-                VR-музей поддерживает управление с клавиатуры и мыши, а&nbsp;также VR-контроллеров
+              <p
+                className="mx-auto max-w-2xl text-lg"
+                style={{ color: "#9ca3af" }}
+              >
+                VR-музей поддерживает управление с клавиатуры и мыши,
+                а&nbsp;также VR-контроллеров
               </p>
             </div>
           </Reveal>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {CONTROLS.map((c, i) => (
               <Reveal key={i} delay={i * 100}>
-                <div className="hover-card" style={{
-                  borderRadius: 20, padding: 32, height: "100%",
-                  background: C.bgCard, border: `1px solid ${C.borderFaint}`,
-                  transition: "all 0.35s ease",
-                }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = "rgba(245,158,11,0.25)";
-                    e.currentTarget.style.background = "rgba(245,158,11,0.04)";
-                    e.currentTarget.style.transform = "translateY(-6px)";
-                    e.currentTarget.style.boxShadow = "0 12px 40px rgba(245,158,11,0.08)";
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = C.borderFaint;
-                    e.currentTarget.style.background = C.bgCard;
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "none";
+                <div
+                  className="control-card group relative h-full rounded-2xl p-7 transition-all duration-300"
+                  style={{
+                    background: "rgba(255,255,255,0.02)",
+                    border: "1px solid rgba(255,255,255,0.06)",
                   }}
                 >
-                  <div style={{ fontSize: 40, marginBottom: 16 }}>{c.icon}</div>
-                  <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: C.textMain }}>{c.title}</h3>
-                  <p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.7, margin: 0 }}>{c.desc}</p>
+                  <div className="mb-4 text-4xl">{c.icon}</div>
+                  <h3 className="mb-2 text-lg font-semibold transition-colors group-hover:text-amber-400">
+                    {c.title}
+                  </h3>
+                  <p
+                    className="text-sm leading-relaxed"
+                    style={{ color: "#6b7280" }}
+                  >
+                    {c.desc}
+                  </p>
                 </div>
               </Reveal>
             ))}
@@ -424,67 +698,94 @@ export function App() {
         </div>
       </section>
 
-      {/* ════════ AUTHORS — HIGHLIGHTED ════════ */}
-      <section id="authors" style={{ position: "relative", padding: "100px 0", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, ${C.bg}, #0c1020, ${C.bg})` }} />
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: "radial-gradient(ellipse at 30% 50%, rgba(245,158,11,0.07) 0%, transparent 50%), radial-gradient(ellipse at 70% 50%, rgba(245,158,11,0.07) 0%, transparent 50%)",
-        }} />
-        {/* Gold line top */}
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.3), transparent)" }} />
+      {/* ═══════════ AUTHORS — выделенная секция ═══════════ */}
+      <section id="authors" className="relative py-24 sm:py-32 overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, #060B18, #0c1020, #060B18)",
+          }}
+        />
+        {/* Декоративное свечение */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse at 30% 50%, rgba(245,158,11,0.06) 0%, transparent 50%), radial-gradient(ellipse at 70% 50%, rgba(245,158,11,0.06) 0%, transparent 50%)",
+          }}
+        />
 
-        <div style={{ position: "relative", zIndex: 10, maxWidth: 900, margin: "0 auto", padding: "0 24px" }}>
+        <div className="relative z-10 mx-auto max-w-5xl px-6">
           <Reveal>
-            <div style={{ textAlign: "center", marginBottom: 64 }}>
-              <span style={{ color: C.gold, fontSize: 13, fontWeight: 600, textTransform: "uppercase", letterSpacing: 3 }}>Команда</span>
-              <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)", fontWeight: 700, marginTop: 16, marginBottom: 12 }}>
-                Авторы <span style={{ color: C.gold }}>проекта</span>
+            <div className="mb-16 text-center">
+              <span
+                className="text-sm font-semibold uppercase tracking-widest"
+                style={{ color: "#f59e0b" }}
+              >
+                Команда
+              </span>
+              <h2 className="mt-4 mb-4 text-3xl font-bold sm:text-4xl lg:text-5xl">
+                Авторы <span style={{ color: "#f59e0b" }}>проекта</span>
               </h2>
-              <p style={{ color: C.textMuted, margin: 0 }}>Ученики 10 инженерного класса</p>
+              <p style={{ color: "#6b7280" }}>
+                Ученики 10 инженерного класса
+              </p>
             </div>
           </Reveal>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 32, maxWidth: 700, margin: "0 auto" }}>
-            {AUTHORS.map((a, i) => (
+          <div className="grid gap-8 sm:grid-cols-2 max-w-3xl mx-auto">
+            {AUTHORS.map((author, i) => (
               <Reveal key={i} delay={i * 150}>
-                <div className="hover-card" style={{
-                  borderRadius: 24, padding: "48px 40px", textAlign: "center",
-                  background: "linear-gradient(145deg, rgba(245,158,11,0.05) 0%, rgba(255,255,255,0.02) 100%)",
-                  border: "1px solid rgba(245,158,11,0.14)",
-                  boxShadow: "0 4px 40px rgba(0,0,0,0.3)",
-                  transition: "all 0.5s ease",
-                }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = "rgba(245,158,11,0.3)";
-                    e.currentTarget.style.transform = "translateY(-8px)";
-                    e.currentTarget.style.boxShadow = "0 16px 60px rgba(245,158,11,0.12)";
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = "rgba(245,158,11,0.14)";
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "0 4px 40px rgba(0,0,0,0.3)";
+                <div
+                  className="author-card group relative rounded-3xl p-8 sm:p-10 text-center transition-all duration-500"
+                  style={{
+                    background:
+                      "linear-gradient(145deg, rgba(245,158,11,0.04) 0%, rgba(255,255,255,0.02) 100%)",
+                    border: "1px solid rgba(245,158,11,0.12)",
+                    boxShadow: "0 4px 40px rgba(0,0,0,0.3)",
                   }}
                 >
-                  {/* Avatar */}
-                  <div style={{
-                    width: 96, height: 96, borderRadius: "50%", margin: "0 auto 24px",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    background: "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(217,119,6,0.1))",
-                    border: "2px solid rgba(245,158,11,0.25)",
-                    fontSize: 32, fontWeight: 700, color: C.gold,
-                    boxShadow: "0 0 30px rgba(245,158,11,0.1)",
-                    transition: "transform 0.5s",
-                  }}>{a.initials}</div>
+                  {/* Аватар */}
+                  <div
+                    className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold transition-all duration-500 group-hover:scale-110"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(217,119,6,0.1) 100%)",
+                      border: "2px solid rgba(245,158,11,0.25)",
+                      color: "#f59e0b",
+                      boxShadow: "0 0 30px rgba(245,158,11,0.1)",
+                    }}
+                  >
+                    {author.initials}
+                  </div>
 
-                  <h3 style={{ fontSize: "clamp(1.1rem, 2vw, 1.4rem)", fontWeight: 700, marginBottom: 12, color: C.textMain }}>{a.name}</h3>
+                  {/* Имя */}
+                  <h3
+                    className="mb-2 text-xl font-bold sm:text-2xl"
+                    style={{ color: "#f3f4f6" }}
+                  >
+                    {author.name}
+                  </h3>
 
-                  <span style={{
-                    display: "inline-block", padding: "6px 18px", borderRadius: 999, fontSize: 14, fontWeight: 500,
-                    background: "rgba(245,158,11,0.08)", color: C.gold, border: "1px solid rgba(245,158,11,0.15)",
-                  }}>{a.role}</span>
+                  {/* Роль */}
+                  <span
+                    className="inline-block rounded-full px-4 py-1.5 text-sm font-medium"
+                    style={{
+                      background: "rgba(245,158,11,0.08)",
+                      color: "#f59e0b",
+                      border: "1px solid rgba(245,158,11,0.15)",
+                    }}
+                  >
+                    {author.role}
+                  </span>
 
-                  <p style={{ color: C.textMuted, fontSize: 14, marginTop: 16, marginBottom: 0 }}>10 инженерный класс</p>
+                  <p
+                    className="mt-4 text-sm"
+                    style={{ color: "#6b7280" }}
+                  >
+                    10 инженерный класс
+                  </p>
                 </div>
               </Reveal>
             ))}
@@ -492,36 +793,63 @@ export function App() {
         </div>
       </section>
 
-      {/* ════════ CTA ════════ */}
-      <section id="enter-vr" style={{ position: "relative", padding: "120px 0" }}>
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, ${C.bg}, #0d1a30, ${C.bg})` }} />
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 50% 50%, rgba(217,164,48,0.1) 0%, transparent 55%)" }} />
-
-        <div style={{ position: "relative", zIndex: 10, maxWidth: 700, margin: "0 auto", padding: "0 24px", textAlign: "center" }}>
+      {/* ═══════════ CTA ═══════════ */}
+      <section id="enter-vr" className="relative py-24 sm:py-36">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, #060B18, #0d1a30, #060B18)",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 50% 50%, rgba(217,164,48,0.1) 0%, transparent 55%)",
+          }}
+        />
+        <div className="relative z-10 mx-auto max-w-3xl px-6 text-center">
           <Reveal>
-            <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)", fontWeight: 700, marginBottom: 24 }}>
-              Готовы <span style={{ color: C.gold }}>погрузиться</span> в&nbsp;историю?
+            <h2 className="mb-6 text-3xl font-bold sm:text-4xl lg:text-5xl">
+              Готовы{" "}
+              <span style={{ color: "#f59e0b" }}>погрузиться</span>{" "}
+              в&nbsp;историю?
             </h2>
-            <p style={{ color: C.textSub, fontSize: 18, maxWidth: 540, margin: "0 auto 48px", lineHeight: 1.7 }}>
+            <p
+              className="mx-auto mb-12 max-w-xl text-lg"
+              style={{ color: "#9ca3af" }}
+            >
               Исследуйте крепость Анапа в виртуальной реальности
               и&nbsp;прикоснитесь к событиям, изменившим ход истории
             </p>
-            <a href="https://example.com/vr-museum" target="_blank" rel="noopener noreferrer"
-              className="glow-btn"
-              style={{ ...btnStyle, padding: "20px 52px", borderRadius: 16, fontSize: 20 }}
+            <a
+              href="https://example.com/vr-museum"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="glow-button group inline-flex items-center gap-3 rounded-2xl px-12 py-5 text-xl font-bold shadow-2xl transition-all hover:scale-105"
+              style={{
+                background: "linear-gradient(90deg, #f59e0b, #d97706)",
+                color: "#060B18",
+                boxShadow: "0 8px 50px rgba(245,158,11,0.25)",
+              }}
             >
-              <VRIcon size={28} /> Войти в VR музей
+              <VRIcon size={28} />
+              Войти в VR музей
             </a>
           </Reveal>
         </div>
       </section>
 
-      {/* ════════ FOOTER ════════ */}
-      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.05)", padding: "24px 0" }}>
-        <div style={{
-          maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", flexWrap: "wrap",
-          justifyContent: "space-between", alignItems: "center", gap: 16, color: C.textDim, fontSize: 14,
-        }}>
+      {/* ═══════════ FOOTER ═══════════ */}
+      <footer
+        className="relative py-8"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+      >
+        <div
+          className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 text-sm sm:flex-row"
+          style={{ color: "#4b5563" }}
+        >
           <span>© 2025 VR Музей «Крепость Анапа»</span>
           <span>Быков А. Д. · Кудрявцев В. О. — 10 инженерный класс</span>
         </div>
