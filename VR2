@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR Музей — Виртуальная Галерея</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+
+        #loading-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 9999; transition: opacity 1s ease;
+        }
+        #loading-screen.fade-out { opacity: 0; pointer-events: none; }
+        #loading-screen h1 {
+            color: #e0c97f; font-size: 2.5rem; margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(224,201,127,0.5);
+            letter-spacing: 4px;
+        }
+        #loading-screen p { color: #aaa; font-size: 1rem; margin-bottom: 30px; }
+        .loader {
+            width: 60px; height: 60px; border: 3px solid rgba(224,201,127,0.2);
+            border-top: 3px solid #e0c97f; border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .enter-btn {
+            margin-top: 30px; padding: 15px 40px; background: linear-gradient(135deg, #c9a84c, #e0c97f);
+            color: #1a1a2e; border: none; border-radius: 8px; font-size: 1.1rem;
+            cursor: pointer; font-weight: bold; letter-spacing: 2px;
+            display: none; transition: transform 0.3s;
+        }
+        .enter-btn:hover { transform: scale(1.05); }
+
+        #info-panel {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.75); color: white; padding: 12px 24px;
+            border-radius: 12px; font-size: 0.9rem; z-index: 100;
+            backdrop-filter: blur(10px); border: 1px solid rgba(224,201,127,0.3);
+            pointer-events: none; text-align: center;
+        }
+        #info-panel span { color: #e0c97f; font-weight: bold; }
+
+        #crosshair {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 20px; height: 20px; z-index: 50; pointer-events: none; opacity: 0.6;
+        }
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute; background: white;
+        }
+        #crosshair::before { width: 2px; height: 20px; left: 9px; top: 0; }
+        #crosshair::after { width: 20px; height: 2px; top: 9px; left: 0; }
+
+        #painting-info {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.85); color: #e0c97f; padding: 14px 28px;
+            border-radius: 10px; font-size: 1.1rem; z-index: 100;
+            backdrop-filter: blur(10px); border: 1px solid rgba(224,201,127,0.4);
+            opacity: 0; transition: opacity 0.5s; pointer-events: none;
+            text-align: center;
+        }
+        #painting-info.visible { opacity: 1; }
+
+        /* Modal Styles - Premium Museum Look */
+        #modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); z-index: 2000;
+            display: none; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.5s ease;
+            backdrop-filter: blur(8px);
+        }
+        #modal-overlay.active { display: flex; opacity: 1; pointer-events: auto; }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #0f111a 0%, #161b2c 100%);
+            border: 1px solid #c9a84c;
+            border-radius: 4px;
+            padding: 0;
+            max-width: 700px;
+            width: 90%;
+            color: #f5f0e8;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(201, 168, 76, 0.15);
+            text-align: left;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            animation: slideUp 0.4s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .modal-header {
+            background: linear-gradient(90deg, #1c2333, #151925);
+            padding: 25px 40px;
+            border-bottom: 1px solid #c9a84c;
+            position: relative;
+        }
+        .modal-title {
+            font-family: 'Playfair Display', 'Times New Roman', serif;
+            font-size: 2.2rem; color: #e0c97f; margin: 0;
+            letter-spacing: 1px; text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .modal-artist {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 1.1rem; color: #aebfd6; margin-top: 8px;
+            font-weight: 300; letter-spacing: 0.5px;
+        }
+        
+        .modal-body {
+            padding: 40px;
+            max-height: 60vh;
+            overflow-y: auto;
+            background: radial-gradient(circle at top right, rgba(30, 41, 59, 0.3), transparent);
+        }
+        /* Custom Scrollbar */
+        .modal-body::-webkit-scrollbar { width: 8px; }
+        .modal-body::-webkit-scrollbar-track { background: #0f111a; }
+        .modal-body::-webkit-scrollbar-thumb { background: #3e4c63; border-radius: 4px; }
+        
+        .modal-desc {
+            font-family: 'Georgia', serif;
+            font-size: 1.1rem; line-height: 1.9;
+            color: #d1d5db; margin: 0;
+            text-align: justify;
+        }
+        .modal-desc h3 {
+            color: #e0c97f;
+            font-family: 'Playfair Display', 'Times New Roman', serif;
+            font-size: 1.3rem;
+            margin: 20px 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(224, 201, 127, 0.3);
+            letter-spacing: 1px;
+        }
+        .modal-desc h3:first-child { margin-top: 0; }
+        .modal-desc p {
+            margin: 0 0 16px 0;
+            text-indent: 1.5em;
+        }
+        .modal-desc p:last-child { margin-bottom: 0; }
+        .modal-desc em {
+            color: #a8c4e0;
+            font-style: italic;
+            background: rgba(168, 196, 224, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .modal-desc strong { color: #e0c97f; font-weight: 600; }
+
+        .modal-close {
+            position: absolute; top: 15px; right: 20px;
+            color: #7a8ba6; font-size: 2.5rem; cursor: pointer;
+            background: none; border: none; line-height: 1;
+            transition: color 0.3s;
+        }
+        .modal-close:hover { color: #e0c97f; }
+
+        .modal-footer {
+            padding: 15px 40px;
+            background: #0d1017;
+            border-top: 1px solid rgba(201, 168, 76, 0.2);
+            font-size: 0.8rem; color: #556;
+            text-transform: uppercase; letter-spacing: 2px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Info Modal -->
+    <div id="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2 class="modal-title" id="m-title">Название картины</h2>
+                <div class="modal-artist" id="m-artist">Автор, Год</div>
+                <button class="modal-close" onclick="closeModalDirect()">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc" id="m-desc">Описание картины...</p>
+            </div>
+            <div class="modal-footer">
+                Виртуальный Музей Искусств • Коллекция 2023
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <h1>🏛️ VR МУЗЕЙ</h1>
+        <p>Виртуальная галерея искусств</p>
+        <div class="loader"></div>
+        <button class="enter-btn" id="enter-btn" onclick="enterMuseum()">ВОЙТИ В МУЗЕЙ</button>
+    </div>
+
+    <!-- UI Overlays -->
+    <div id="crosshair"></div>
+    <div id="info-panel">
+        <span>WASD</span> — движение &nbsp;|&nbsp; <span>Мышь</span> — осмотр &nbsp;|&nbsp; <span>VR</span> — шлем
+    </div>
+    <div id="painting-info"></div>
+
+    <script>
+    // ============ GLOBAL MODAL FUNCTIONS ============
+    function showPaintingInfo(title, artist, desc) {
+        document.getElementById('m-title').innerText = title || "Без названия";
+        document.getElementById('m-artist').innerText = artist || "Неизвестный автор";
+        document.getElementById('m-desc').innerHTML = desc || "Информация скоро появится.";
+        
+        const overlay = document.getElementById('modal-overlay');
+        overlay.style.display = 'flex';
+        // Small delay to allow display:flex to apply before opacity transition
+        requestAnimationFrame(() => {
+            overlay.classList.add('active');
+        });
+        
+        // Exit pointer lock so user can use mouse
+        if (document.pointerLockElement) {
+            document.exitPointerLock();
+        }
+    }
+
+    function closeModal(e) {
+        if (e.target.id === 'modal-overlay') {
+            closeModalDirect();
+        }
+    }
+    
+    function closeModalDirect() {
+        const overlay = document.getElementById('modal-overlay');
+        overlay.classList.remove('active');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            // Optional: return focus to canvas
+            const scene = document.querySelector('a-scene');
+            if (scene && scene.canvas) scene.canvas.focus();
+        }, 300);
+    }
+
+    // ============ REGISTER auto-frame COMPONENT ============
+    AFRAME.registerComponent('auto-frame', {
+        schema: {
+            url:       { type: 'string', default: '' },
+            title:     { type: 'string', default: '' },
+            artist:    { type: 'string', default: '' },
+            description: { type: 'string', default: '' },
+            maxWidth:  { type: 'number', default: 4.0 },
+            maxHeight: { type: 'number', default: 3.5 },
+            frameDepth:{ type: 'number', default: 0.18 }
+        },
+
+        init: function () {
+            const data = this.data;
+
+            if (data.url && data.url.length > 0) {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const aspect = img.naturalWidth / img.naturalHeight;
+                    this.buildFrame(aspect, data, true, img);
+                };
+                img.onerror = () => {
+                    this.buildFrame(4/3, data, false, null);
+                };
+                img.src = data.url;
+            } else {
+                this.buildFrame(4/3, data, false, null);
+            }
+        },
+
+        buildFrame: function (aspect, data, hasImage, imgElement) {
+            const el = this.el;
+            const maxW = data.maxWidth;
+            const maxH = data.maxHeight;
+            const fd = data.frameDepth;
+
+            // Calculate canvas size
+            let canvasW, canvasH;
+            if (aspect >= 1) {
+                canvasW = Math.min(maxW, maxH * aspect);
+                canvasH = canvasW / aspect;
+                if (canvasH > maxH) { canvasH = maxH; canvasW = canvasH * aspect; }
+            } else {
+                canvasH = Math.min(maxH, maxW / aspect);
+                canvasW = canvasH * aspect;
+                if (canvasW > maxW) { canvasW = maxW; canvasH = canvasW / aspect; }
+            }
+
+            const border = 0.25;
+            const frameW = canvasW + border * 2;
+            const frameH = canvasH + border * 2;
+
+            // ---- LAYERS (Clean Z-separation) ----
+            const outer = document.createElement('a-box');
+            outer.setAttribute('width', frameW + 0.15);
+            outer.setAttribute('height', frameH + 0.15);
+            outer.setAttribute('depth', fd);
+            outer.setAttribute('position', '0 0 0');
+            el.appendChild(outer);
+            outer.addEventListener('loaded', () => {
+                const mesh = outer.getObject3D('mesh');
+                if (mesh) mesh.material = new THREE.MeshStandardMaterial({ color: '#6B4F1D', roughness: 0.25, metalness: 0.65 });
+            });
+
+            const mid = document.createElement('a-box');
+            mid.setAttribute('width', frameW + 0.05);
+            mid.setAttribute('height', frameH + 0.05);
+            mid.setAttribute('depth', fd * 0.6);
+            mid.setAttribute('position', '0 0 ' + (fd * 0.35));
+            el.appendChild(mid);
+            mid.addEventListener('loaded', () => {
+                const mesh = mid.getObject3D('mesh');
+                if (mesh) mesh.material = new THREE.MeshStandardMaterial({ color: '#DAA520', roughness: 0.35, metalness: 0.55 });
+            });
+
+            const inner = document.createElement('a-box');
+            inner.setAttribute('width', frameW - 0.05);
+            inner.setAttribute('height', frameH - 0.05);
+            inner.setAttribute('depth', fd * 0.4);
+            inner.setAttribute('position', '0 0 ' + (fd * 0.55));
+            el.appendChild(inner);
+            inner.addEventListener('loaded', () => {
+                const mesh = inner.getObject3D('mesh');
+                if (mesh) mesh.material = new THREE.MeshStandardMaterial({ color: '#8B6914', roughness: 0.25, metalness: 0.6 });
+            });
+
+            const lip = document.createElement('a-box');
+            lip.setAttribute('width', canvasW + 0.08);
+            lip.setAttribute('height', canvasH + 0.08);
+            lip.setAttribute('depth', fd * 0.25);
+            lip.setAttribute('position', '0 0 ' + (fd * 0.7));
+            el.appendChild(lip);
+            lip.addEventListener('loaded', () => {
+                const mesh = lip.getObject3D('mesh');
+                if (mesh) mesh.material = new THREE.MeshStandardMaterial({ color: '#B8860B', roughness: 0.3, metalness: 0.7 });
+            });
+
+            // Canvas
+            const canvasZ = fd * 0.95; 
+            const canvas = document.createElement('a-plane');
+            canvas.setAttribute('width', canvasW);
+            canvas.setAttribute('height', canvasH);
+            canvas.setAttribute('position', '0 0 ' + canvasZ);
+            canvas.setAttribute('class', 'clickable'); // Enable raycasting
+            
+            // Interaction
+            if (hasImage) {
+                canvas.addEventListener('click', () => {
+                    showPaintingInfo(data.title, data.artist, data.description);
+                });
+                
+                canvas.addEventListener('mouseenter', () => {
+                    document.body.style.cursor = 'pointer';
+                    light.setAttribute('intensity', '3.5');
+                });
+                canvas.addEventListener('mouseleave', () => {
+                    document.body.style.cursor = 'default';
+                    light.setAttribute('intensity', '2.5');
+                });
+            }
+
+            if (hasImage && imgElement) {
+                const tex = new THREE.Texture(imgElement);
+                tex.colorSpace = THREE.SRGBColorSpace;
+                tex.minFilter = THREE.LinearMipmapLinearFilter;
+                tex.magFilter = THREE.LinearFilter;
+                tex.generateMipmaps = true;
+                tex.anisotropy = 16;
+                tex.needsUpdate = true;
+
+                canvas.addEventListener('loaded', () => {
+                     const mesh = canvas.getObject3D('mesh');
+                     if (mesh) {
+                         mesh.material = new THREE.MeshBasicMaterial({
+                             map: tex,
+                             toneMapped: false,
+                             side: THREE.DoubleSide
+                         });
+                     }
+                });
+            } else {
+                canvas.setAttribute('material', 'color: #050505; roughness: 0.95');
+            }
+            el.appendChild(canvas);
+
+            // === Spotlight ===
+            const light = document.createElement('a-light');
+            light.setAttribute('type', 'spot');
+            light.setAttribute('color', '#FFF8E7');
+            light.setAttribute('intensity', '2.5');
+            light.setAttribute('distance', '8');
+            light.setAttribute('angle', '50');
+            light.setAttribute('penumbra', '0.4');
+            light.setAttribute('position', '0 ' + (frameH/2 + 2) + ' 3');
+            light.setAttribute('target', canvas);
+            el.appendChild(light);
+
+            // === Label plate (Enhanced) ===
+            if (data.title || data.artist) {
+                const labelW = Math.max(2.0, canvasW * 0.8);
+                const labelH = 0.6; // Bigger plaque
+                const labelGroup = document.createElement('a-entity');
+                labelGroup.setAttribute('position', '0 ' + (-(frameH/2) - 0.5) + ' ' + (fd * 0.5));
+
+                // Gold border/base
+                const labelBg = document.createElement('a-box');
+                labelBg.setAttribute('width', labelW);
+                labelBg.setAttribute('height', labelH);
+                labelBg.setAttribute('depth', 0.04);
+                labelBg.setAttribute('material', 'color: #B8860B; roughness: 0.3; metalness: 0.8');
+                labelGroup.appendChild(labelBg);
+                
+                // Black inner face
+                const labelFace = document.createElement('a-plane');
+                labelFace.setAttribute('width', labelW - 0.05);
+                labelFace.setAttribute('height', labelH - 0.05);
+                labelFace.setAttribute('position', '0 0 0.025');
+                labelFace.setAttribute('material', 'color: #050505; roughness: 0.8');
+                labelGroup.appendChild(labelFace);
+
+                if (data.title) {
+                    const titleText = document.createElement('a-text');
+                    titleText.setAttribute('value', data.title);
+                    titleText.setAttribute('align', 'center');
+                    titleText.setAttribute('color', '#ffffff');
+                    titleText.setAttribute('width', labelW * 0.9);
+                    titleText.setAttribute('wrap-count', '25');
+                    titleText.setAttribute('position', '0 0.1 0.03');
+                    titleText.setAttribute('font', 'https://cdn.aframe.io/fonts/Exo2Bold.fnt');
+                    labelGroup.appendChild(titleText);
+                }
+                if (data.artist) {
+                    const artistText = document.createElement('a-text');
+                    artistText.setAttribute('value', data.artist);
+                    artistText.setAttribute('align', 'center');
+                    artistText.setAttribute('color', '#DAA520'); // Gold text
+                    artistText.setAttribute('width', labelW * 0.9);
+                    artistText.setAttribute('wrap-count', '30');
+                    artistText.setAttribute('position', '0 -0.12 0.03');
+                    artistText.setAttribute('font', 'https://cdn.aframe.io/fonts/Exo2SemiBold.fnt');
+                    labelGroup.appendChild(artistText);
+                }
+                el.appendChild(labelGroup);
+            }
+
+            // === Corner ornaments ===
+            const cornerZ = fd * 0.85;
+            const corners = [
+                { x: -(frameW/2 - 0.05), y:  (frameH/2 - 0.05) },
+                { x:  (frameW/2 - 0.05), y:  (frameH/2 - 0.05) },
+                { x: -(frameW/2 - 0.05), y: -(frameH/2 - 0.05) },
+                { x:  (frameW/2 - 0.05), y: -(frameH/2 - 0.05) }
+            ];
+            corners.forEach(c => {
+                const orn = document.createElement('a-sphere');
+                orn.setAttribute('radius', 0.07);
+                orn.setAttribute('position', c.x + ' ' + c.y + ' ' + cornerZ);
+                orn.setAttribute('material', 'color: #DAA520; metalness: 0.8; roughness: 0.15');
+                el.appendChild(orn);
+            });
+        }
+    });
+
+    // ============ REGISTER dust-particles COMPONENT ============
+    AFRAME.registerComponent('dust-particles', {
+        init: function () {
+            for (let i = 0; i < 40; i++) {
+                const particle = document.createElement('a-sphere');
+                particle.setAttribute('radius', Math.random() * 0.02 + 0.005);
+                particle.setAttribute('position', {
+                    x: (Math.random() - 0.5) * 28,
+                    y: Math.random() * 7 + 0.5,
+                    z: (Math.random() - 0.5) * 48
+                });
+                particle.setAttribute('material', {
+                    color: '#FFF8E7',
+                    opacity: Math.random() * 0.25 + 0.08,
+                    transparent: true
+                });
+                particle.setAttribute('animation', {
+                    property: 'position.y',
+                    dir: 'alternate',
+                    dur: Math.random() * 6000 + 3000,
+                    easing: 'easeInOutSine',
+                    loop: true,
+                    to: Math.random() * 7 + 0.5
+                });
+                this.el.appendChild(particle);
+            }
+        }
+    });
+    </script>
+
+    <!-- A-Frame Scene -->
+    <a-scene
+        vr-mode-ui="enabled: true"
+        renderer="antialias: true; colorManagement: true; sortObjects: true; physicallyCorrectLights: false; highRefreshRate: true; maxCanvasWidth: 4096; maxCanvasHeight: 4096; precision: highp; logarithmicDepthBuffer: true"
+        fog="type: exponential; color: #1a1a2e; density: 0.012"
+        loading-screen="enabled: false"
+        id="scene"
+    >
+        <!-- Assets -->
+        <a-assets timeout="30000">
+        </a-assets>
+
+        <!-- ============ ENVIRONMENT ============ -->
+        <a-sky color="#0d1117"></a-sky>
+
+        <!-- ============ MAIN HALL ============ -->
+        
+        <!-- Floor -->
+        <a-plane position="0 0 0" rotation="-90 0 0" width="30" height="50" 
+                 material="color: #2a1f14; roughness: 0.3; metalness: 0.1" shadow="receive: true"></a-plane>
+        <a-plane position="0 0.02 0" rotation="-90 0 0" width="28" height="48"
+                 material="color: #3d2b1f; roughness: 0.4; metalness: 0.05"></a-plane>
+        <a-plane position="0 0.04 0" rotation="-90 0 0" width="4" height="48"
+                 material="color: #8b1a1a; roughness: 0.6; metalness: 0"></a-plane>
+
+        <!-- Ceiling -->
+        <a-plane position="0 8 0" rotation="90 0 0" width="30" height="50"
+                 material="color: #f5f0e8; roughness: 0.9"></a-plane>
+        <a-box position="0 7.8 0" width="28" height="0.15" depth="48"
+               material="color: #e0c97f; roughness: 0.5; metalness: 0.3"></a-box>
+
+        <!-- ============ WALLS ============ -->
+        
+        <!-- Left Wall -->
+        <a-plane position="-15 4 0" rotation="0 90 0" width="50" height="8"
+                 material="color: #2c3e50; roughness: 0.8"></a-plane>
+        <a-plane position="-14.93 1.5 0" rotation="0 90 0" width="50" height="3"
+                 material="color: #1a252f; roughness: 0.7"></a-plane>
+        <a-box position="-14.88 3 0" width="0.15" height="0.2" depth="50"
+               material="color: #e0c97f; metalness: 0.4; roughness: 0.3"></a-box>
+        <a-box position="-14.88 7.5 0" width="0.15" height="0.2" depth="50"
+               material="color: #e0c97f; metalness: 0.4; roughness: 0.3"></a-box>
+
+        <!-- Right Wall -->
+        <a-plane position="15 4 0" rotation="0 -90 0" width="50" height="8"
+                 material="color: #2c3e50; roughness: 0.8"></a-plane>
+        <a-plane position="14.93 1.5 0" rotation="0 -90 0" width="50" height="3"
+                 material="color: #1a252f; roughness: 0.7"></a-plane>
+        <a-box position="14.88 3 0" width="0.15" height="0.2" depth="50"
+               material="color: #e0c97f; metalness: 0.4; roughness: 0.3"></a-box>
+        <a-box position="14.88 7.5 0" width="0.15" height="0.2" depth="50"
+               material="color: #e0c97f; metalness: 0.4; roughness: 0.3"></a-box>
+
+        <!-- Back Wall -->
+        <a-plane position="0 4 -25" rotation="0 0 0" width="30" height="8"
+                 material="color: #2c3e50; roughness: 0.8"></a-plane>
+        <a-plane position="0 1.5 -24.93" rotation="0 0 0" width="30" height="3"
+                 material="color: #1a252f; roughness: 0.7"></a-plane>
+
+        <!-- Front Wall (with entrance arch) -->
+        <a-plane position="-10 4 25" rotation="0 180 0" width="10" height="8"
+                 material="color: #2c3e50; roughness: 0.8"></a-plane>
+        <a-plane position="10 4 25" rotation="0 180 0" width="10" height="8"
+                 material="color: #2c3e50; roughness: 0.8"></a-plane>
+        <a-plane position="0 7 25" rotation="0 180 0" width="10" height="2"
+                 material="color: #2c3e50; roughness: 0.8"></a-plane>
+
+        <!-- ============ PAINTING FRAMES (auto-sizing) ============ -->
+
+        <!-- ===== LEFT WALL — 6 рамок (Y lowered to 2.8) ===== -->
+        <a-entity position="-14.7 2.8 -20" rotation="0 90 0"
+            auto-frame="url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/After_the_attack._Plevna%2C_1877-1878.jpg/1280px-After_the_attack._Plevna%2C_1877-1878.jpg; 
+                        title: После атаки. Перевязочный пункт под Плевной; 
+                        artist: Василий Васильевич Верещагин, 1881; 
+                        description: <h3>О картине</h3><p><strong>Полное название:</strong> «После атаки. Перевязочный пункт под Плевной»</p><p><strong>Год создания:</strong> 1881 год</p><p><strong>Техника:</strong> Холст, масло</p><p><strong>Размеры:</strong> 183 × 234 см</p><p><strong>Местонахождение:</strong> Государственная Третьяковская галерея, Москва</p><p><strong>Жанр:</strong> Батальная живопись (реалистическое направление)</p><h3>Исторический контекст</h3><p>Картина изображает события <strong>Русско-турецкой войны 1877–1878 годов</strong>. Конкретно — последствия <em>третьего штурма Плевны</em>, предпринятого 30 августа 1877 года. Этот день был выбран не случайно: он совпадал с <strong>именинами императора Александра II</strong>. Командование надеялось преподнести государю «подарок» в виде взятой крепости. Вместо этого — катастрофа: русская армия потеряла <strong>более 13 000 человек</strong> убитыми и ранеными за один день.</p><h3>Композиция и сюжет</h3><p>Перед зрителем — <strong>импровизированный перевязочный пункт</strong> близ деревни Горный Дубняк под Плевной. Бескрайнее серое небо сливается с раскисшей от крови и осенних дождей глиной. На переднем плане — <strong>сотни раненых солдат</strong>, лежащих прямо на земле, без носилок, без палаток. Их так много, что немногочисленные врачи физически не успевают оказать помощь. Многие умрут здесь же, так и не дождавшись перевязки.</p><p>Верещагин намеренно избегает любой героизации. Здесь нет бравых офицеров, нет развевающихся знамён, нет победных жестов. Только <strong>страдание, усталость и смерть</strong>. В центре композиции — фигура хирурга, склонившегося над очередным раненым. Его белый халат — единственное светлое пятно в этом море человеческого горя.</p><h3>Художественные особенности</h3><p>Верещагин использует <strong>приглушённую, почти монохромную палитру</strong>: серо-коричневые, охристые, землистые тона. Это создаёт ощущение безнадёжности и уныния. Горизонтальный формат картины подчёркивает бескрайность поля страданий — оно уходит за пределы холста, намекая, что показанное — лишь малая часть трагедии.</p><p><strong>Освещение</strong> — рассеянное, пасмурное. Нет ни одного источника яркого света, что символизирует отсутствие надежды. Композиция построена так, что взгляд зрителя скользит по телам раненых, не находя точки покоя.</p><h3>Скандал и реакция власти</h3><p>Когда Александр II увидел это полотно на выставке, он пришёл в ярость. Художника обвинили в том, что он <em>«порочит честь русского мундира»</em> и <em>«деморализует армию»</em>. Верещагина называли смутьяном и предателем. Военное министерство требовало запретить показ картины. Но художник отвечал критикам с достоинством:</p><p><em>«Я писал то, что видел своими глазами. Лгать в искусстве я не умею и не желаю. Пусть смотрят те, кто отправляет солдат умирать, — и видят, чего стоят их победы»</em>.</p><h3>Значение для мировой культуры</h3><p>Сегодня «После атаки» признана <strong>одним из величайших антивоенных произведений</strong> в истории мировой живописи. Вместе с другими работами Балканской серии она повлияла на формирование критического взгляда на войну в европейском искусстве и стала предвестником документальной военной фотографии XX века.</p>;
+                        maxWidth: 5; maxHeight: 3.5">
+        </a-entity>
+
+        <a-entity position="-14.7 2.8 -12" rotation="0 90 0"
+            auto-frame="url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/After_the_attack._Plevna%2C_1877-1878.jpg/1280px-After_the_attack._Plevna%2C_1877-1878.jpg; 
+                        title: Василий Верещагин — Воин и Пацифист; 
+                        artist: Биографическая справка (1842–1904); 
+                        description: <h3>Человек-легенда</h3><p>Василий Васильевич Верещагин — одна из самых загадочных и противоречивых фигур в истории мирового искусства. Выпускник Морского кадетского корпуса, профессиональный военный, он всю жизнь ненавидел войну — и при этом провёл на полях сражений больше времени, чем любой другой художник в истории. Он участвовал в Туркестанских походах, Русско-турецкой и Русско-японской войнах, был ранен, награждён орденом Святого Георгия — и отказался от него.</p><h3>Философия творчества</h3><p>Верещагин считал своим священным долгом показывать войну такой, какая она есть: без прикрас, без героической позолоты, без парадных генералов на белых конях. <em>«Передо мной, как перед художником, война, и я её бью, сколько у меня есть сил»</em>, — писал он. На раме своей знаменитой картины «Апофеоз войны» (пирамида черепов) он оставил посвящение: <em>«Всем великим завоевателям — прошедшим, настоящим и будущим»</em>.</p><h3>Признание и преследование</h3><p>Его выставки в Европе собирали сотни тысяч посетителей. Немецкий генералитет требовал запретить показ его работ, считая их <em>«подрывающими боевой дух армии»</em>. За свой вклад в дело мира Верещагин был номинирован на первую в истории Нобелевскую премию мира в 1901 году.</p><h3>Гибель художника</h3><p>31 марта 1904 года Верещагин находился на борту флагманского броненосца «Петропавловск» у берегов Порт-Артура. Корабль подорвался на японской мине и затонул за две минуты. Вместе с художником погибли адмирал Макаров и 650 матросов. Очевидцы утверждали, что в момент взрыва Верещагин стоял на палубе с альбомом в руках, делая зарисовки боя. Он ушёл под воду, как и жил — с карандашом в руке, лицом к войне.</p>;
+                        maxWidth: 5; maxHeight: 3.5">
+        </a-entity>
+
+        <a-entity position="-14.7 2.8 -4" rotation="0 90 0"
+            auto-frame="url: https://dl.dropboxusercontent.com/scl/fi/7gmbpqdczx2ogdiauwq49/.jpg?rlkey=nklwyvbelb6cdhblpykzro5i9&st=1p3q2bf4&raw=1; 
+                        title: Памятник Ивану Гудовичу в Анапе; 
+                        artist: Быков Артём; 
+                        description: <h3>О картине</h3><p><strong>Название:</strong> «Памятник Ивану Гудовичу в городе Анапа»</p><p><strong>Автор:</strong> Быков Артём</p><p><strong>Сюжет:</strong> На картине изображён бронзовый памятник генерал-фельдмаршалу Ивану Васильевичу Гудовичу, установленный в городе Анапа. Монумент запечатлён на фоне южного неба, что подчёркивает величие фигуры полководца и его историческую связь с этим краем.</p><h3>О памятнике</h3><p><strong>Дата установки:</strong> 2011 год</p><p><strong>Скульптор:</strong> Александр Аполлонов</p><p><strong>Расположение:</strong> Центральная набережная Анапы, у входа в археологический музей «Горгиппия»</p><p>Памятник представляет собой бронзовую фигуру Гудовича в полный рост в парадном мундире с орденами и фельдмаршальским жезлом в руке. Полководец изображён в момент триумфа — взятия турецкой крепости Анапа. Постамент из красного гранита украшен барельефами, изображающими сцены штурма крепости.</p><h3>Генерал-фельдмаршал Иван Васильевич Гудович</h3><p><strong>Годы жизни:</strong> 1741–1820</p><p><strong>Звание:</strong> Генерал-фельдмаршал Российской империи</p><p><strong>Титул:</strong> Граф (с 1797 года)</p><p>Иван Васильевич Гудович — выдающийся русский военачальник, один из наиболее талантливых полководцев эпохи Екатерины II и Александра I. Родился в знатной украинской дворянской семье на Черниговщине.</p><h3>Взятие Анапы (1791)</h3><p>Главным подвигом Гудовича стал <strong>штурм турецкой крепости Анапа 22 июня 1791 года</strong> — одна из самых блестящих побед Русско-турецкой войны 1787–1791 годов.</p><p><em>Анапа считалась неприступной</em> — мощные каменные стены, 95 орудий, гарнизон из 10 000 турок и 15 000 горцев. Гудович располагал лишь 7 000 солдат.</p><p>Штурм начался на рассвете. Русские войска атаковали одновременно с нескольких направлений. После <strong>пятичасового ожесточённого боя</strong> крепость пала. Турки потеряли убитыми около 8 000 человек, в плен попали 13 500 человек, включая коменданта крепости. Русские потери составили около 3 500 человек.</p><p>За эту победу Екатерина II наградила Гудовича <strong>орденом Святого Георгия II степени</strong> и золотой шпагой, украшенной бриллиантами, с надписью <em>«За храбрость»</em>.</p><h3>Значение для истории Анапы</h3><p>Взятие Анапы Гудовичем положило начало <strong>окончательному присоединению Кубани к России</strong>. Хотя по Ясскому миру 1791 года крепость была возвращена Турции, русские войска возвращались сюда ещё дважды — в 1807 и 1828 годах. Окончательно Анапа стала российской в 1829 году.</p><p>Сегодня Гудович почитается как <strong>освободитель Анапы</strong>. Его имя носит одна из улиц города, а памятник стал одной из главных достопримечательностей курорта.</p><h3>Другие заслуги</h3><p>Помимо взятия Анапы, Гудович прославился как <strong>главнокомандующий на Кавказе</strong> (1806–1809), где вёл успешные боевые действия против Персии и горских племён. Также занимал пост <strong>генерал-губернатора Москвы</strong> (1809–1812), где провёл важные реформы городского управления.</p><p>Скончался в 1820 году в возрасте 79 лет. Похоронен в Киево-Печерской лавре.</p>;
+                        maxWidth: 4; maxHeight: 3.5">
+        </a-entity>
+
+        <a-entity position="-14.7 2.8 4" rotation="0 90 0"
+            auto-frame="url: https://dl.dropboxusercontent.com/scl/fi/zvw5w9r8ufg04m3hf34x9/main.jpg?rlkey=6fvvs234gr67rgcsutvcelyjo&st=5atybb6s&raw=1; 
+                        title: Триумфальная арка в Анапе; 
+                        artist: Быков Артём; 
+                        description: <h3>О фотографии</h3><p><strong>Название:</strong> «Триумфальная арка в Анапе»</p><p><strong>Автор:</strong> Быков Артём</p><p>На фотографии запечатлена величественная Триумфальная арка — одна из главных достопримечательностей города-курорта Анапа. Монументальное сооружение возвышается на фоне южного неба, символизируя гостеприимство и торжественность черноморского курорта.</p><h3>О Триумфальной арке</h3><p><strong>Расположение:</strong> Центральная набережная Анапы, у входа в парк «Ореховая роща»</p><p><strong>Год установки:</strong> 2015</p><p><strong>Высота:</strong> около 8 метров</p><p><strong>Материал:</strong> Белый мрамор и гранит</p><p>Триумфальная арка в Анапе — это современный архитектурный символ города, созданный в классическом римском стиле. Арка выполнена из белого камня и украшена декоративными элементами, характерными для античной архитектуры: колоннами коринфского ордера, барельефами и орнаментальной лепниной.</p><h3>Архитектурные особенности</h3><p><strong>Стиль:</strong> Неоклассицизм с элементами античной архитектуры</p><p>Арка имеет <em>три пролёта</em> — центральный широкий для прохода и два боковых узких. Венчает конструкцию массивный аттик с надписью «АНАПА». По бокам расположены парные колонны с каннелюрами (вертикальными желобками), увенчанные капителями с акантовыми листьями.</p><p>Белоснежный цвет арки символизирует <strong>чистоту черноморских пляжей</strong> и создаёт эффектный контраст с ярко-синим южным небом. В вечернее время арка подсвечивается, становясь центром притяжения для прогулок.</p><h3>Символическое значение</h3><p>Триумфальные арки издревле служили символом <strong>победы, славы и торжества</strong>. В контексте Анапы арка олицетворяет:</p><p>• <strong>Исторические победы</strong> — память о взятии турецкой крепости русскими войсками</p><p>• <strong>Курортный триумф</strong> — превращение Анапы в один из лучших курортов России</p><p>• <strong>Гостеприимство</strong> — торжественный вход в город для миллионов туристов</p><h3>Туристическое значение</h3><p>Сегодня Триумфальная арка — это <strong>визитная карточка Анапы</strong> и одно из самых фотографируемых мест курорта. Ежегодно тысячи туристов делают памятные снимки на её фоне. Арка стала неотъемлемой частью свадебных фотосессий и городских праздников.</p><p>Рядом с аркой расположены главные достопримечательности: набережная, маяк, музей «Горгиппия» и памятник основателю города.</p>;
+                        maxWidth: 4.5; maxHeight: 3.5">
+        </a-entity>
+
+        <a-entity position="-14.7 2.8 12" rotation="0 90 0"
+            auto-frame="url: https://dl.dropboxusercontent.com/scl/fi/0ufkhwqw4s5ghbo3iuedf/.jpg?rlkey=4p8nvcj2f1dlohe1y2vgc3llo&st=5qjnz9vz&raw=1; 
+                        title: Русские ворота в Анапе; 
+                        artist: Быков Артём; 
+                        description: <h3>О фотографии</h3><p><strong>Название:</strong> «Русские ворота в Анапе»</p><p><strong>Автор:</strong> Быков Артём</p><p>На фотографии запечатлены знаменитые Русские ворота — единственный сохранившийся фрагмент турецкой крепости, некогда возвышавшейся на месте современной Анапы. Этот исторический памятник является символом освобождения города от османского владычества.</p><h3>Историческая справка</h3><p><strong>Год постройки:</strong> 1783</p><p><strong>Первоначальное название:</strong> Ворота турецкой крепости Анапа</p><p><strong>Переименование:</strong> 1828 год — в честь взятия крепости русскими войсками</p><p><strong>Статус:</strong> Памятник архитектуры федерального значения</p><p>Турецкая крепость Анапа была построена в 1783 году по приказу султана Абдул-Хамида I для защиты северных рубежей Османской империи. Крепость имела <strong>семь бастионов</strong> и <strong>трое ворот</strong>. До наших дней сохранились лишь одни ворота — восточные.</p><h3>Архитектурные особенности</h3><p><strong>Стиль:</strong> Османская военная архитектура XVIII века</p><p><strong>Материал:</strong> Тёсаный камень-ракушечник</p><p><strong>Толщина стен:</strong> до 2 метров</p><p><strong>Высота арки:</strong> около 4,5 метров</p><p>Ворота представляют собой <em>массивную каменную арку</em> с полуциркульным сводом. Кладка выполнена из местного камня-ракушечника, характерного для черноморского побережья. Над аркой сохранились остатки зубчатого парапета — типичного элемента турецких крепостей.</p><h3>Название «Русские ворота»</h3><p>После окончательного взятия Анапы русскими войсками <strong>12 июня 1828 года</strong> турецкие ворота были переименованы в «Русские» — в память о храбрости солдат, штурмовавших неприступную крепость. На фасаде была установлена памятная плита с надписью:</p><p><em>«Русские ворота. Памятник османской военной архитектуры XVIII века. Взятие Анапы 12 июня 1828 года»</em>.</p><h3>Мемориальный комплекс</h3><p>Сегодня Русские ворота являются центром <strong>мемориального комплекса</strong>, включающего:</p><p>• <strong>Памятную стелу</strong> с надписью о взятии крепости</p><p>• <strong>Две старинные пушки</strong> — подлинные орудия времён Русско-турецких войн</p><p>• <strong>Цветочные клумбы</strong> и благоустроенную парковую зону</p><p>Внутри арки установлена памятная табличка, а рядом — информационные стенды об истории крепости.</p><h3>Символическое значение</h3><p>Русские ворота — это не просто архитектурный памятник. Это <strong>символ победы</strong>, напоминающий о многовековой борьбе за черноморское побережье. Они олицетворяют:</p><p>• <strong>Воинскую славу</strong> — память о солдатах, павших при штурмах Анапы</p><p>• <strong>Историческую преемственность</strong> — связь между эпохами</p><p>• <strong>Культурное наследие</strong> — уникальный образец османской архитектуры на территории России</p><h3>Туристическое значение</h3><p>Русские ворота — <strong>главная историческая достопримечательность Анапы</strong> и обязательный пункт посещения для туристов. Ежегодно тысячи гостей города фотографируются на фоне древней арки и знакомятся с историей края.</p><p>Памятник расположен в центре города, в сквере на пересечении улиц Пушкина и Крепостной.</p>;
+                        maxWidth: 5; maxHeight: 3.5">
+        </a-entity>
+
+        <a-entity position="-14.7 2.8 20" rotation="0 90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
+        </a-entity>
+
+        <!-- ===== RIGHT WALL — 6 рамок (Y lowered to 2.8) ===== -->
+        <a-entity position="14.7 2.8 -20" rotation="0 -90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
+        </a-entity>
+
+        <a-entity position="14.7 2.8 -12" rotation="0 -90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4.5; maxHeight: 3.5">
+        </a-entity>
+
+        <a-entity position="14.7 2.8 -4" rotation="0 -90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
+        </a-entity>
+
+        <a-entity position="14.7 2.8 4" rotation="0 -90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4.5; maxHeight: 3.5">
+        </a-entity>
+
+        <a-entity position="14.7 2.8 12" rotation="0 -90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
+        </a-entity>
+
+        <a-entity position="14.7 2.8 20" rotation="0 -90 0"
+            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 5; maxHeight: 3.5">
+        </a-entity>
+
+        <!-- ============ DECORATIVE ELEMENTS ============ -->
+
+        <!-- Benches -->
+        <a-entity class="bench" position="-5 0 -10">
+            <a-box width="3" height="0.6" depth="0.8" position="0 0.5 0" material="color: #5c3a21; roughness: 0.6"></a-box>
+            <a-box width="0.2" height="0.5" depth="0.6" position="-1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
+            <a-box width="0.2" height="0.5" depth="0.6" position="1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
+        </a-entity>
+        <a-entity class="bench" position="5 0 -10">
+            <a-box width="3" height="0.6" depth="0.8" position="0 0.5 0" material="color: #5c3a21; roughness: 0.6"></a-box>
+            <a-box width="0.2" height="0.5" depth="0.6" position="-1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
+            <a-box width="0.2" height="0.5" depth="0.6" position="1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
+        </a-entity>
+        <a-entity class="bench" position="0 0 5" rotation="0 90 0">
+            <a-box width="3" height="0.6" depth="0.8" position="0 0.5 0" material="color: #5c3a21; roughness: 0.6"></a-box>
+            <a-box width="0.2" height="0.5" depth="0.6" position="-1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
+            <a-box width="0.2" height="0.5" depth="0.6" position="1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
+        </a-entity>
+        <a-entity class="bench" position="0 0 15" rotation="0 90 0">
+            <a-box width="3" height="0.6" depth="0.8" position="0 0.5 0" material="color: #5c3a21; roughness: 0.6"></a-box>
+            <a-box width="0.2" height="0.5" depth="0.6" position="-1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
+            <a-box width="0.2" height="0.5" depth="0.6" position="1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
+        </a-entity>
+
+        <!-- Decorative pedestals with vases -->
+        <a-entity position="0 0 -22">
+            <a-box width="1" height="1.2" depth="1" position="0 0.6 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-box>
+            <a-cylinder radius="0.35" height="0.8" position="0 1.6 0" material="color: #c0392b; roughness: 0.3; metalness: 0.2"></a-cylinder>
+            <a-torus radius="0.35" radius-tubular="0.03" position="0 2.0 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-torus>
+        </a-entity>
+        <a-entity position="-6 0 -22">
+            <a-box width="1" height="1.2" depth="1" position="0 0.6 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-box>
+            <a-sphere radius="0.4" position="0 1.6 0" material="color: #2c3e80; roughness: 0.2; metalness: 0.4"></a-sphere>
+        </a-entity>
+        <a-entity position="6 0 -22">
+            <a-box width="1" height="1.2" depth="1" position="0 0.6 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-box>
+            <a-sphere radius="0.4" position="0 1.6 0" material="color: #2c3e80; roughness: 0.2; metalness: 0.4"></a-sphere>
+        </a-entity>
+
+        <!-- ============ MUSEUM TITLE ON BACK WALL ============ -->
+        <a-entity position="0 6.5 -24.8">
+            <a-text value="ВИРТУАЛЬНЫЙ МУЗЕЙ" align="center" color="#e0c97f" width="12" font="mozillavr" anchor="center"></a-text>
+            <a-text value="ГАЛЕРЕЯ МИРОВОГО ИСКУССТВА" align="center" color="#aaa" width="6" position="0 -0.5 0" font="mozillavr"></a-text>
+        </a-entity>
+
+        <!-- ============ LIGHTING ============ -->
+        <!-- Brighter Ambient & Hemisphere for Global Illumination -->
+        <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
+        <a-light type="hemisphere" color="#fff" ground-color="#445" intensity="0.5"></a-light>
+        
+        <!-- Main Ceiling Lights (Brighter) -->
+        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 -20" decay="1.5" castShadow="true"></a-light>
+        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 -10" decay="1.5"></a-light>
+        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 0" decay="1.5"></a-light>
+        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 10" decay="1.5"></a-light>
+        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 20" decay="1.5"></a-light>
+        
+        <!-- Ceiling light fixtures -->
+        <a-entity position="0 7.7 -20">
+            <a-cylinder radius="0.3" height="0.1" material="color: #e0c97f; metalness: 0.6; roughness: 0.3"></a-cylinder>
+            <a-sphere radius="0.25" position="0 -0.2 0" material="color: #FFFDE7; emissive: #FFFDE7; emissiveIntensity: 0.5; opacity: 0.9"></a-sphere>
+        </a-entity>
+        <a-entity position="0 7.7 -10">
+            <a-cylinder radius="0.3" height="0.1" material="color: #e0c97f; metalness: 0.6; roughness: 0.3"></a-cylinder>
+            <a-sphere radius="0.25" position="0 -0.2 0" material="color: #FFFDE7; emissive: #FFFDE7; emissiveIntensity: 0.5; opacity: 0.9"></a-sphere>
+        </a-entity>
+        <a-entity position="0 7.7 0">
+            <a-cylinder radius="0.3" height="0.1" material="color: #e0c97f; metalness: 0.6; roughness: 0.3"></a-cylinder>
+            <a-sphere radius="0.25" position="0 -0.2 0" material="color: #FFFDE7; emissive: #FFFDE7; emissiveIntensity: 0.5; opacity: 0.9"></a-sphere>
+        </a-entity>
+        <a-entity position="0 7.7 10">
+            <a-cylinder radius="0.3" height="0.1" material="color: #e0c97f; metalness: 0.6; roughness: 0.3"></a-cylinder>
+            <a-sphere radius="0.25" position="0 -0.2 0" material="color: #FFFDE7; emissive: #FFFDE7; emissiveIntensity: 0.5; opacity: 0.9"></a-sphere>
+        </a-entity>
+        <a-entity position="0 7.7 20">
+            <a-cylinder radius="0.3" height="0.1" material="color: #e0c97f; metalness: 0.6; roughness: 0.3"></a-cylinder>
+            <a-sphere radius="0.25" position="0 -0.2 0" material="color: #FFFDE7; emissive: #FFFDE7; emissiveIntensity: 0.5; opacity: 0.9"></a-sphere>
+        </a-entity>
+
+        <!-- ============ ENTRANCE ARCH ============ -->
+        <a-box position="-5.1 3 25" width="0.3" height="6" depth="1" material="color: #d4c5a9; roughness: 0.4"></a-box>
+        <a-box position="5.1 3 25" width="0.3" height="6" depth="1" material="color: #d4c5a9; roughness: 0.4"></a-box>
+        <a-box position="0 6.1 25" width="10.5" height="0.4" depth="1" material="color: #d4c5a9; roughness: 0.4"></a-box>
+        <a-text value="ВХОД" position="0 6.5 24.4" align="center" color="#e0c97f" width="6"></a-text>
+
+        <!-- ============ ROPE BARRIERS ============ -->
+        <!-- Left side rope posts -->
+        <a-entity class="rope-post" position="-13 0 -16">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+        <a-entity class="rope-post" position="-13 0 -8">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+        <a-entity class="rope-post" position="-13 0 0">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+        <a-entity class="rope-post" position="-13 0 8">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+        <a-entity class="rope-post" position="-13 0 16">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+        <a-entity class="rope-post" position="-13 0 24">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+
+        <!-- Right side rope posts -->
+        <a-entity class="rope-post" position="13 0 -16">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+        <a-entity class="rope-post" position="13 0 -8">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+        <a-entity class="rope-post" position="13 0 0">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+        <a-entity class="rope-post" position="13 0 8">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+        <a-entity class="rope-post" position="13 0 16">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+        <a-entity class="rope-post" position="13 0 24">
+            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
+            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
+        </a-entity>
+
+        <!-- Rope connectors (left) -->
+        <a-cylinder position="-13 1.1 -12" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="-13 1.1 -4" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="-13 1.1 4" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="-13 1.1 12" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="-13 1.1 20" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+
+        <!-- Rope connectors (right) -->
+        <a-cylinder position="13 1.1 -12" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="13 1.1 -4" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="13 1.1 4" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="13 1.1 12" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+        <a-cylinder position="13 1.1 20" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+
+        <!-- Dust particles -->
+        <a-entity dust-particles></a-entity>
+
+        <!-- ============ CAMERA / PLAYER ============ -->
+        <a-entity id="rig" position="0 0 22" rotation="0 180 0">
+            <a-entity
+                id="camera"
+                camera="near: 0.05; far: 200"
+                look-controls="pointerLockEnabled: true"
+                wasd-controls="acceleration: 30"
+                position="0 1.7 0"
+            >
+                <a-cursor
+                    id="cursor"
+                    fuse="false"
+                    raycaster="objects: .clickable; far: 20"
+                    color="#e0c97f"
+                    scale="1 1 1"
+                    geometry="primitive: ring; radiusInner: 0.005; radiusOuter: 0.01"
+                    material="shader: flat; opacity: 0.8"
+                    animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
+                    animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1"
+                    animation__mouseenter="property: scale; startEvents: mouseenter; easing: easeInCubic; dur: 500; to: 1.5 1.5 1.5"
+                    animation__mouseleave="property: scale; startEvents: mouseleave; easing: easeInCubic; dur: 500; to: 1 1 1"
+                ></a-cursor>
+            </a-entity>
+        </a-entity>
+
+    </a-scene>
+
+    <script>
+        // Loading screen logic
+        const scene = document.getElementById('scene');
+        const loadingScreen = document.getElementById('loading-screen');
+        const enterBtn = document.getElementById('enter-btn');
+
+        scene.addEventListener('loaded', () => {
+            setTimeout(() => {
+                enterBtn.style.display = 'block';
+                document.querySelector('.loader').style.display = 'none';
+            }, 1500);
+        });
+
+        setTimeout(() => {
+            enterBtn.style.display = 'block';
+            document.querySelector('.loader').style.display = 'none';
+        }, 5000);
+
+        function enterMuseum() {
+            loadingScreen.classList.add('fade-out');
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 1000);
+
+            const canvas = scene.canvas;
+            if (canvas) {
+                canvas.addEventListener('click', () => {
+                    canvas.requestPointerLock();
+                });
+            }
+        }
+
+        // Boost renderer quality after scene loads
+        scene.addEventListener('loaded', () => {
+            const renderer = scene.renderer;
+            if (renderer) {
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                renderer.outputColorSpace = THREE.SRGBColorSpace;
+                renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                renderer.toneMappingExposure = 1.2;
+            }
+        });
+
+        // Hide info panel after 8 seconds
+        setTimeout(() => {
+            const infoPanel = document.getElementById('info-panel');
+            infoPanel.style.transition = 'opacity 2s';
+            infoPanel.style.opacity = '0';
+            setTimeout(() => { infoPanel.style.display = 'none'; }, 2000);
+        }, 8000);
+    </script>
+</body>
+</html>
