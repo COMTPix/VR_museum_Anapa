@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проект VR Музея Анапы</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 60px 0;
+            color: white;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 60px 0;
+        }
+        
+        .feature-card {
+            background: rgba(255,255,255,0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+        
+        .vr-button-container {
+            text-align: center;
+            padding: 60px 0;
+        }
+        
+        .vr-btn {
+            padding: 20px 50px;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(255,107,107,0.4);
+        }
+        
+        .vr-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(255,107,107,0.6);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            color: rgba(255,255,255,0.7);
+            margin-top: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏛️ VR Музей Анапы</h1>
+            <p class="subtitle">Инновационный проект по созданию виртуального музея исторических артефактов и достопримечательностей города Анапа</p>
+            <a href="#about" class="btn">Узнать больше</a>
+        </header>
+        
+        <section id="about" class="features">
+            <div class="feature-card">
+                <h3>📚 История Анапы</h3>
+                <p>Погрузитесь в богатую историю нашего города от древних времен до современности. Узнайте интересные факты и малоизвестные события.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🖼️ Цифровые коллекции</h3>
+                <p>Коллекции уникальных артефактов, фотографий и документов, представленные в цифровом формате с высоким качеством.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🎯 Интерактивный опыт</h3>
+                <p>Интерактивные экспонаты и образовательные программы для всех возрастов, доступные в любое время.</p>
+            </div>
+        </section>
+        
+        <section class="vr-button-container">
+            <h2>Посетить Виртуальный Музей</h2>
+            <p>Погрузитесь в виртуальную реальность и посетите наш музей онлайн:</p>
+            <button class="vr-btn" onclick="openVRMuseum()">Открыть VR Музей</button>
+        </section>
+        
+        <footer>
+            <p>Проект VR Музея Анапы • Создано с ❤️ для сохранения истории</p>
+        </footer>
+    </div>
+    
+    <script>
+        function openVRMuseum() {
+            window.location.href = 'VR.html';
+        }
+    </script>
+</body>
+</html>
