@@ -534,7 +534,7 @@ a-scene audio {
             margin-top: 30px; padding: 15px 40px; background: linear-gradient(135deg, #c9a84c, #e0c97f);
             color: #1a1a2e; border: none; border-radius: 8px; font-size: 1.1rem;
             cursor: pointer; font-weight: bold; letter-spacing: 2px;
-            display: none; transition: transform 0.3s;
+            transition: transform 0.3s;
         }
         .enter-btn:hover { transform: scale(1.05); }
 
@@ -690,16 +690,16 @@ a-scene audio {
     </div>
 
     <!-- Loading Screen -->
-    <div id="loading-screen" class="fade-out" style="display: none;">
+    <div id="loading-screen">
         <h1>🏛️ VR МУЗЕЙ</h1>
         <p>Виртуальная галерея искусств</p>
-        <div class="loader" style="display: none;"></div>
-        <button class="enter-btn" id="enter-btn" onclick="enterMuseum()" style="display: block;">ВОЙТИ В МУЗЕЙ</button>
+        <div class="loader"></div>
+        <button class="enter-btn" id="enter-btn" onclick="enterMuseum()">ВОЙТИ В МУЗЕЙ</button>
     </div>
 
     <!-- UI Overlays -->
     <div id="crosshair"></div>
-    <div id="info-panel" style="transition: opacity 2s; opacity: 0; display: none;">
+    <div id="info-panel">
         <span>WASD</span> — движение &nbsp;|&nbsp; <span>Мышь</span> — осмотр &nbsp;|&nbsp; <span>VR</span> — шлем
     </div>
     <div id="painting-info"></div>
@@ -1260,24 +1260,25 @@ a-scene audio {
             </a-entity>
         </a-entity>
 
-    <canvas class="a-canvas a-grab-cursor" data-aframe-canvas="true" data-engine="three.js r158" width="2648" height="376" style=""></canvas><div class="a-enter-vr fullscreen" aframe-injected=""><button class="a-enter-vr-button" title="Enter VR mode with a headset or fullscreen without" aframe-injected=""></button></div><div class="a-orientation-modal a-hidden" aframe-injected=""><button aframe-injected="">Exit VR</button></div></a-scene>
+    </a-scene>
 
     <script>
         // Loading screen logic
         const scene = document.getElementById('scene');
         const loadingScreen = document.getElementById('loading-screen');
         const enterBtn = document.getElementById('enter-btn');
+        const loader = document.querySelector('.loader');
 
+        // Hide loader and show button after scene loads
         scene.addEventListener('loaded', () => {
             setTimeout(() => {
-                enterBtn.style.display = 'block';
-                document.querySelector('.loader').style.display = 'none';
-            }, 1500);
+                if (loader) loader.style.display = 'none';
+            }, 1000);
         });
 
+        // Fallback timeout
         setTimeout(() => {
-            enterBtn.style.display = 'block';
-            document.querySelector('.loader').style.display = 'none';
+            if (loader) loader.style.display = 'none';
         }, 5000);
 
         function enterMuseum() {
@@ -1308,9 +1309,11 @@ a-scene audio {
         // Hide info panel after 8 seconds
         setTimeout(() => {
             const infoPanel = document.getElementById('info-panel');
-            infoPanel.style.transition = 'opacity 2s';
-            infoPanel.style.opacity = '0';
-            setTimeout(() => { infoPanel.style.display = 'none'; }, 2000);
+            if (infoPanel) {
+                infoPanel.style.transition = 'opacity 2s';
+                infoPanel.style.opacity = '0';
+                setTimeout(() => { infoPanel.style.display = 'none'; }, 2000);
+            }
         }, 8000);
     </script>
 
