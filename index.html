@@ -36,6 +36,12 @@ overflow-x: hidden;
 -webkit-font-smoothing: antialiased;
 -moz-osx-font-smoothing: grayscale;
 }
+body.vr-active {
+overflow: hidden;
+}
+body.vr-active .landing-page {
+display: none !important;
+}
 ::selection { background: rgba(192,120,64,0.35); color: var(--ivory); }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--navy-900); }
@@ -696,14 +702,6 @@ padding: 15px 40px; background: #0d1017;
 border-top: 1px solid rgba(201, 168, 76, 0.2);
 font-size: 0.8rem; color: #556; text-transform: uppercase;
 letter-spacing: 2px; text-align: center;
-}
-
-/* Hide landing page when VR is active */
-body.vr-active .landing-page {
-display: none !important;
-}
-body.vr-active {
-overflow: hidden;
 }
 </style>
 </head>
