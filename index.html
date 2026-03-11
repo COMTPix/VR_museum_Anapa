@@ -1,1738 +1,951 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VR Музей «Крепость Анапа» — Виртуальная экскурсия</title>
-<meta name="description" content="Погрузитесь в историю русско-турецких войн и исследуйте крепость Анапа в виртуальной реальности">
-<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com/">
-<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-/* ══════════ Reset & Base ══════════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
---navy-950: #080d1a;
---navy-900: #0e1629;
---navy-800: #141e38;
---navy-700: #1c2a4a;
---copper: #c07840;
---copper-light: #e0a878;
---copper-bright: #f0c8a0;
---ivory: #f8f4ef;
---slate-300: #cbd5e1;
---slate-400: #94a3b8;
---slate-500: #64748b;
---slate-600: #475569;
-}
-html { scroll-behavior: smooth; }
-body {
-font-family: 'Inter', sans-serif;
-background: var(--navy-950);
-color: var(--slate-300);
-overflow-x: hidden;
--webkit-font-smoothing: antialiased;
--moz-osx-font-smoothing: grayscale;
-}
-body.vr-active {
-overflow: hidden;
-}
-body.vr-active .landing-page {
-display: none !important;
-}
-::selection { background: rgba(192,120,64,0.35); color: var(--ivory); }
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--navy-900); }
-::-webkit-scrollbar-thumb { background: var(--copper); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--copper-light); }
-a { text-decoration: none; color: inherit; }
-img { max-width: 100%; display: block; }
-button { border: none; background: none; cursor: pointer; font-family: inherit; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VR Музей «Крепость Анапа» — Виртуальная экскурсия</title>
+  <meta name="description" content="Погрузитесь в историю русско-турецких войн и исследуйте крепость Анапа в виртуальной реальности">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════ Reset & Base ══════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy-950: #080d1a;
+      --navy-900: #0e1629;
+      --navy-800: #141e38;
+      --navy-700: #1c2a4a;
+      --copper: #c07840;
+      --copper-light: #e0a878;
+      --copper-bright: #f0c8a0;
+      --ivory: #f8f4ef;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--navy-950);
+      color: var(--slate-300);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    ::selection { background: rgba(192,120,64,0.35); color: var(--ivory); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--navy-900); }
+    ::-webkit-scrollbar-thumb { background: var(--copper); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--copper-light); }
+    a { text-decoration: none; color: inherit; }
+    img { max-width: 100%; display: block; }
+    button { border: none; background: none; cursor: pointer; font-family: inherit; }
 
-/* ══════════ Typography ══════════ */
-.font-display { font-family: 'Playfair Display', serif; }
-.font-mono { font-family: 'JetBrains Mono', monospace; }
+    /* ══════════ Typography ══════════ */
+    .font-display { font-family: 'Playfair Display', serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
 
-/* ══════════ Keyframes ══════════ */
-@keyframes float {
-0%, 100% { transform: translateY(0); }
-50% { transform: translateY(-12px); }
-}
-@keyframes fadeInUp {
-from { opacity: 0; transform: translateY(35px); }
-to { opacity: 1; transform: translateY(0); }
-}
-@keyframes shimmer {
-0% { background-position: -200% center; }
-100% { background-position: 200% center; }
-}
-@keyframes pulseGlow {
-0%, 100% { box-shadow: 0 0 20px rgba(192,120,64,0.25); }
-50% { box-shadow: 0 0 45px rgba(192,120,64,0.55); }
-}
-@keyframes gentlePulse {
-0%, 100% { opacity: 0.4; }
-50% { opacity: 0.8; }
-}
-@keyframes bounce {
-0%, 100% { transform: translateY(0); }
-50% { transform: translateY(6px); }
-}
-@keyframes revealIn {
-from { opacity: 0; transform: translateY(40px); }
-to { opacity: 1; transform: translateY(0); }
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+    /* ══════════ Keyframes ══════════ */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(35px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(192,120,64,0.25); }
+      50% { box-shadow: 0 0 45px rgba(192,120,64,0.55); }
+    }
+    @keyframes gentlePulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(6px); }
+    }
+    @keyframes revealIn {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-/* ══════════ Navbar ══════════ */
-.navbar {
-position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-padding: 20px 0;
-transition: all 0.5s ease;
-}
-.navbar.scrolled {
-background: rgba(8,13,26,0.85);
-backdrop-filter: blur(24px);
-box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-padding: 12px 0;
-}
-.nav-inner {
-max-width: 1280px; margin: 0 auto; padding: 0 24px;
-display: flex; align-items: center; justify-content: space-between;
-}
-.nav-logo {
-display: flex; align-items: center; gap: 12px;
-}
-.nav-logo-icon {
-width: 40px; height: 40px; border-radius: 10px;
-background: linear-gradient(135deg, var(--copper), var(--copper-light));
-display: flex; align-items: center; justify-content: center;
-color: var(--navy-950); font-weight: 700; font-family: 'Playfair Display', serif;
-font-size: 18px; box-shadow: 0 4px 15px rgba(192,120,64,0.3);
-transition: box-shadow 0.3s;
-}
-.nav-logo:hover .nav-logo-icon { box-shadow: 0 4px 25px rgba(192,120,64,0.5); }
-.nav-logo-text {
-color: var(--copper-light); font-family: 'Playfair Display', serif;
-font-size: 18px; letter-spacing: 0.05em;
-}
-.nav-links { display: flex; align-items: center; gap: 32px; }
-.nav-links a {
-font-size: 13px; color: var(--slate-400); letter-spacing: 0.15em;
-text-transform: uppercase; transition: color 0.3s;
-}
-.nav-links a:hover { color: var(--copper-light); }
-.nav-burger {
-display: none; color: var(--copper-light); padding: 8px;
-}
-.nav-burger svg { width: 24px; height: 24px; }
-.nav-mobile {
-display: none; background: rgba(8,13,26,0.95); backdrop-filter: blur(24px);
-border-top: 1px solid rgba(192,120,64,0.2); padding: 16px 24px;
-}
-.nav-mobile.open { display: block; }
-.nav-mobile a {
-display: block; color: var(--slate-300); padding: 12px 0;
-letter-spacing: 0.08em; transition: color 0.3s;
-}
-.nav-mobile a:hover { color: var(--copper-light); }
-@media (max-width: 768px) {
-.nav-links { display: none; }
-.nav-burger { display: block; }
-.nav-logo-text { display: none; }
-}
+    /* ══════════ Navbar ══════════ */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 20px 0;
+      transition: all 0.5s ease;
+    }
+    .navbar.scrolled {
+      background: rgba(8,13,26,0.85);
+      backdrop-filter: blur(24px);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+      padding: 12px 0;
+    }
+    .nav-inner {
+      max-width: 1280px; margin: 0 auto; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .nav-logo-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--copper), var(--copper-light));
+      display: flex; align-items: center; justify-content: center;
+      color: var(--navy-950); font-weight: 700; font-family: 'Playfair Display', serif;
+      font-size: 18px; box-shadow: 0 4px 15px rgba(192,120,64,0.3);
+      transition: box-shadow 0.3s;
+    }
+    .nav-logo:hover .nav-logo-icon { box-shadow: 0 4px 25px rgba(192,120,64,0.5); }
+    .nav-logo-text {
+      color: var(--copper-light); font-family: 'Playfair Display', serif;
+      font-size: 18px; letter-spacing: 0.05em;
+    }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a {
+      font-size: 13px; color: var(--slate-400); letter-spacing: 0.15em;
+      text-transform: uppercase; transition: color 0.3s;
+    }
+    .nav-links a:hover { color: var(--copper-light); }
+    .nav-burger {
+      display: none; color: var(--copper-light); padding: 8px;
+    }
+    .nav-burger svg { width: 24px; height: 24px; }
+    .nav-mobile {
+      display: none; background: rgba(8,13,26,0.95); backdrop-filter: blur(24px);
+      border-top: 1px solid rgba(192,120,64,0.2); padding: 16px 24px;
+    }
+    .nav-mobile.open { display: block; }
+    .nav-mobile a {
+      display: block; color: var(--slate-300); padding: 12px 0;
+      letter-spacing: 0.08em; transition: color 0.3s;
+    }
+    .nav-mobile a:hover { color: var(--copper-light); }
 
-/* ══════════ Hero ══════════ */
-.hero {
-position: relative; min-height: 100vh; display: flex;
-align-items: center; justify-content: center; overflow: hidden;
-background:
-radial-gradient(ellipse 80% 60% at 50% 30%, rgba(192,120,64,0.07) 0%, transparent 60%),
-radial-gradient(ellipse 60% 50% at 80% 80%, rgba(40,70,140,0.08) 0%, transparent 60%),
-linear-gradient(180deg, #080d1a 0%, #0e1629 40%, #141e38 70%, #0e1629 100%);
-}
-.hero-orbs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.hero-orb {
-position: absolute; border-radius: 50%; filter: blur(60px);
-animation: float 6s ease-in-out infinite;
-}
-.hero-orb-1 { top: 96px; left: 10%; width: 320px; height: 320px; background: rgba(192,120,64,0.05); }
-.hero-orb-2 { bottom: 96px; right: 8%; width: 384px; height: 384px; background: rgba(40,70,140,0.04); animation-delay: 3s; }
-.hero-ring {
-position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-border-radius: 50%; border: 1px solid rgba(192,120,64,0.05);
-}
-.hero-ring-1 { width: 550px; height: 550px; }
-.hero-ring-2 { width: 780px; height: 780px; border-color: rgba(192,120,64,0.03); }
-.hero-content {
-position: relative; z-index: 10; text-align: center;
-padding: 0 24px; max-width: 960px; margin: 0 auto;
-}
-.hero-badge {
-display: inline-flex; align-items: center; gap: 8px;
-padding: 8px 20px; border-radius: 9999px;
-border: 1px solid rgba(192,120,64,0.25);
-background: rgba(192,120,64,0.05); margin-bottom: 32px;
-opacity: 0; animation: fadeInUp 0.8s ease-out forwards;
-}
-.hero-badge-dot {
-width: 8px; height: 8px; border-radius: 50%;
-background: var(--copper); animation: gentlePulse 3s ease-in-out infinite;
-}
-.hero-badge-text {
-color: var(--copper-light); font-size: 13px;
-letter-spacing: 0.2em; text-transform: uppercase; font-weight: 300;
-}
-.hero-title {
-font-family: 'Playfair Display', serif; font-weight: 700;
-line-height: 1.1; margin-bottom: 24px;
-opacity: 0; animation: fadeInUp 0.8s ease-out 0.2s forwards;
-}
-.hero-title-top {
-display: block; font-size: clamp(3rem, 8vw, 5.5rem); color: var(--ivory);
-}
-.hero-title-bottom {
-display: block; font-size: clamp(3rem, 8vw, 5.5rem); margin-top: 8px;
-background: linear-gradient(90deg, #c07840 0%, #f0c8a0 50%, #c07840 100%);
-background-size: 200% auto;
--webkit-background-clip: text; -webkit-text-fill-color: transparent;
-background-clip: text;
-animation: shimmer 4s linear infinite;
-}
-.hero-subtitle {
-color: var(--slate-400); font-size: clamp(1rem, 2.5vw, 1.25rem);
-max-width: 640px; margin: 0 auto 32px; font-weight: 300;
-line-height: 1.7;
-opacity: 0; animation: fadeInUp 0.8s ease-out 0.4s forwards;
-}
-.quote-block {
-max-width: 680px; margin: 0 auto 40px;
-opacity: 0; animation: fadeInUp 0.8s ease-out 0.5s forwards;
-}
-.quote-inner {
-position: relative; padding: 40px;
-background: linear-gradient(135deg, rgba(192,120,64,0.1) 0%, rgba(20,30,56,0.7) 40%, rgba(192,120,64,0.06) 100%);
-border: 1px solid rgba(192,120,64,0.3); border-radius: 20px;
-backdrop-filter: blur(16px); overflow: hidden;
-}
-.quote-inner::before {
-content: '\201C'; position: absolute; top: -10px; left: 20px;
-font-size: 8rem; font-family: 'Playfair Display', serif;
-color: rgba(192,120,64,0.1); line-height: 1; pointer-events: none;
-}
-.quote-inner::after {
-content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-background: linear-gradient(90deg, transparent, #c07840, #f0c8a0, #c07840, transparent);
-}
-.quote-text {
-position: relative; z-index: 1; color: var(--ivory);
-font-family: 'Playfair Display', serif; font-size: clamp(1.4rem, 3vw, 1.875rem);
-font-style: italic; line-height: 1.5; letter-spacing: 0.02em; text-align: center;
-}
-.quote-divider {
-width: 64px; height: 1px; margin: 20px auto;
-background: linear-gradient(90deg, transparent, var(--copper), transparent);
-}
-.quote-author {
-text-align: center; position: relative; z-index: 1;
-}
-.quote-author-name {
-color: var(--copper-light); font-family: 'Playfair Display', serif;
-font-size: 16px; font-weight: 600; letter-spacing: 0.05em;
-font-style: normal;
-}
-.quote-author-desc {
-color: var(--slate-400); font-size: 13px; margin-top: 8px;
-max-width: 480px; margin-left: auto; margin-right: auto;
-line-height: 1.6; font-weight: 300;
-}
-.hero-cta {
-display: flex; flex-wrap: wrap; gap: 16px;
-justify-content: center;
-opacity: 0; animation: fadeInUp 0.8s ease-out 0.6s forwards;
-}
-.btn-primary {
-display: inline-flex; align-items: center; gap: 12px;
-padding: 16px 32px;
-background: linear-gradient(135deg, var(--copper), var(--copper-light));
-color: var(--navy-950); font-weight: 600; border-radius: 12px;
-font-size: 18px; box-shadow: 0 8px 30px rgba(192,120,64,0.25);
-transition: all 0.3s; animation: pulseGlow 3s ease-in-out infinite;
-}
-.btn-primary:hover {
-transform: scale(1.05); box-shadow: 0 8px 40px rgba(192,120,64,0.45);
-}
-.btn-primary svg {
-width: 20px; height: 20px; transition: transform 0.3s;
-}
-.btn-primary:hover svg { transform: translateX(4px); }
-.btn-secondary {
-display: inline-flex; align-items: center; gap: 12px;
-padding: 16px 32px;
-border: 1px solid rgba(192,120,64,0.25);
-color: var(--copper-light); border-radius: 12px;
-font-size: 18px; transition: all 0.3s;
-}
-.btn-secondary:hover {
-background: rgba(192,120,64,0.1); border-color: rgba(192,120,64,0.5);
-}
-.btn-secondary svg { width: 20px; height: 20px; }
-.scroll-indicator {
-position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
-display: flex; flex-direction: column; align-items: center; gap: 8px;
-opacity: 0; animation: fadeInUp 0.8s ease-out 1.5s forwards;
-}
-.scroll-indicator span {
-color: var(--slate-500); font-size: 11px;
-letter-spacing: 0.2em; text-transform: uppercase;
-}
-.scroll-mouse {
-width: 24px; height: 40px; border: 2px solid var(--slate-600);
-border-radius: 9999px; display: flex; justify-content: center; padding-top: 8px;
-}
-.scroll-dot {
-width: 6px; height: 12px; background: var(--copper);
-border-radius: 9999px; animation: bounce 1.5s infinite;
-}
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-burger { display: block; }
+      .nav-logo-text { display: none; }
+    }
 
-/* ══════════ Sections ══════════ */
-.section { padding: 96px 0; }
-.section-alt {
-background: linear-gradient(180deg, #080d1a 0%, #0e1629 50%, #080d1a 100%);
-}
-.section-base {
-background: linear-gradient(180deg, #0e1629 0%, #080d1a 100%);
-}
-.section-inner {
-max-width: 1152px; margin: 0 auto; padding: 0 24px;
-}
-.section-header {
-text-align: center; margin-bottom: 72px;
-}
-.section-label {
-color: var(--copper); font-size: 13px; letter-spacing: 0.3em;
-text-transform: uppercase; font-weight: 500;
-}
-.section-title {
-font-family: 'Playfair Display', serif; color: var(--ivory);
-font-size: clamp(2rem, 5vw, 3.5rem); margin-top: 16px; font-weight: 700;
-}
-.text-gradient {
-background: linear-gradient(135deg, #c07840, #f0c8a0, #c07840);
--webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
-.section-desc {
-color: var(--slate-400); margin-top: 16px; font-size: 18px;
-font-weight: 300; max-width: 640px; margin-left: auto; margin-right: auto;
-}
-.divider {
-height: 1px;
-background: linear-gradient(90deg, transparent, rgba(192,120,64,0.3), transparent);
-}
+    /* ══════════ Hero ══════════ */
+    .hero {
+      position: relative; min-height: 100vh; display: flex;
+      align-items: center; justify-content: center; overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 30%, rgba(192,120,64,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(40,70,140,0.08) 0%, transparent 60%),
+        linear-gradient(180deg, #080d1a 0%, #0e1629 40%, #141e38 70%, #0e1629 100%);
+    }
+    .hero-orbs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .hero-orb {
+      position: absolute; border-radius: 50%; filter: blur(60px);
+      animation: float 6s ease-in-out infinite;
+    }
+    .hero-orb-1 { top: 96px; left: 10%; width: 320px; height: 320px; background: rgba(192,120,64,0.05); }
+    .hero-orb-2 { bottom: 96px; right: 8%; width: 384px; height: 384px; background: rgba(40,70,140,0.04); animation-delay: 3s; }
+    .hero-ring {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      border-radius: 50%; border: 1px solid rgba(192,120,64,0.05);
+    }
+    .hero-ring-1 { width: 550px; height: 550px; }
+    .hero-ring-2 { width: 780px; height: 780px; border-color: rgba(192,120,64,0.03); }
 
-/* ══════════ Reveal animation ══════════ */
-.reveal {
-opacity: 0; transform: translateY(40px);
-transition: opacity 0.7s ease-out, transform 0.7s ease-out;
-}
-.reveal.visible {
-opacity: 1; transform: translateY(0);
-}
+    .hero-content {
+      position: relative; z-index: 10; text-align: center;
+      padding: 0 24px; max-width: 960px; margin: 0 auto;
+    }
 
-/* ══════════ Cards ══════════ */
-.card {
-background: linear-gradient(145deg, rgba(20,30,56,0.7), rgba(14,22,41,0.9));
-border: 1px solid rgba(192,120,64,0.12);
-backdrop-filter: blur(12px); border-radius: 16px;
-transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
-}
-.card:hover {
-border-color: rgba(192,120,64,0.35);
-box-shadow: 0 8px 40px rgba(192,120,64,0.08);
-transform: translateY(-4px);
-}
+    /* Badge */
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 20px; border-radius: 9999px;
+      border: 1px solid rgba(192,120,64,0.25);
+      background: rgba(192,120,64,0.05); margin-bottom: 32px;
+      opacity: 0; animation: fadeInUp 0.8s ease-out forwards;
+    }
+    .hero-badge-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--copper); animation: gentlePulse 3s ease-in-out infinite;
+    }
+    .hero-badge-text {
+      color: var(--copper-light); font-size: 13px;
+      letter-spacing: 0.2em; text-transform: uppercase; font-weight: 300;
+    }
 
-/* ══════════ Timeline ══════════ */
-.timeline { position: relative; }
-.timeline-line {
-display: none; position: absolute; left: 50%; top: 0; bottom: 0;
-width: 1px;
-background: linear-gradient(180deg, transparent, rgba(192,120,64,0.5) 15%, rgba(192,120,64,0.5) 85%, transparent);
-}
-.timeline-item {
-display: flex; align-items: center; margin-bottom: 32px;
-}
-.timeline-content { width: 100%; }
-.timeline-card { padding: 24px 32px; }
-.timeline-year-row {
-display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
-}
-.timeline-year {
-color: var(--copper); font-family: 'JetBrains Mono', monospace;
-font-size: 13px; font-weight: 500; letter-spacing: 0.1em;
-}
-.timeline-year-line {
-width: 32px; height: 1px; background: rgba(192,120,64,0.3);
-}
-.timeline-card-title {
-font-family: 'Playfair Display', serif; color: var(--ivory);
-font-size: clamp(1.1rem, 2.5vw, 1.5rem); font-weight: 600; margin-bottom: 12px;
-}
-.timeline-card-text {
-color: var(--slate-400); line-height: 1.7; font-weight: 300; font-size: 15px;
-}
-.timeline-dot-wrap {
-display: none; align-items: center; justify-content: center;
-width: 0; position: relative; flex-shrink: 0;
-}
-.timeline-dot {
-position: absolute; width: 16px; height: 16px;
-background: var(--copper); border-radius: 50%;
-box-shadow: 0 0 15px rgba(192,120,64,0.3); z-index: 2;
-}
-.timeline-dot-ring {
-position: absolute; width: 32px; height: 32px;
-border: 2px solid rgba(192,120,64,0.25); border-radius: 50%;
-}
-.timeline-spacer { display: none; width: 50%; }
-@media (min-width: 769px) {
-.timeline-line { display: block; }
-.timeline-item { margin-bottom: 64px; }
-.timeline-content { width: 50%; }
-.timeline-dot-wrap { display: flex; }
-.timeline-spacer { display: block; }
-.timeline-item.left .timeline-content { padding-right: 64px; text-align: right; }
-.timeline-item.left .timeline-year-row { justify-content: flex-end; }
-.timeline-item.left .timeline-spacer { order: 2; }
-.timeline-item.right .timeline-content { padding-left: 64px; order: 2; }
-}
+    /* Title */
+    .hero-title {
+      font-family: 'Playfair Display', serif; font-weight: 700;
+      line-height: 1.1; margin-bottom: 24px;
+      opacity: 0; animation: fadeInUp 0.8s ease-out 0.2s forwards;
+    }
+    .hero-title-top {
+      display: block; font-size: clamp(3rem, 8vw, 5.5rem); color: var(--ivory);
+    }
+    .hero-title-bottom {
+      display: block; font-size: clamp(3rem, 8vw, 5.5rem); margin-top: 8px;
+      background: linear-gradient(90deg, #c07840 0%, #f0c8a0 50%, #c07840 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+    }
 
-/* ══════════ Controls Grid ══════════ */
-.controls-grid {
-display: grid; grid-template-columns: 1fr; gap: 24px;
-}
-@media (min-width: 640px) { .controls-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1024px) { .controls-grid { grid-template-columns: repeat(4, 1fr); } }
-.control-card { padding: 28px; text-align: center; height: 100%; }
-.control-icon {
-width: 56px; height: 56px; margin: 0 auto 20px; border-radius: 12px;
-background: linear-gradient(135deg, rgba(192,120,64,0.2), rgba(192,120,64,0.05));
-display: flex; align-items: center; justify-content: center;
-color: var(--copper); transition: all 0.3s;
-}
-.control-card:hover .control-icon {
-transform: scale(1.1);
-background: linear-gradient(135deg, rgba(192,120,64,0.3), rgba(192,120,64,0.1));
-}
-.control-icon svg { width: 28px; height: 28px; }
-.control-title {
-font-family: 'Playfair Display', serif; color: var(--ivory);
-font-size: 18px; font-weight: 600; margin-bottom: 12px;
-}
-.control-desc {
-color: var(--slate-400); font-size: 14px; line-height: 1.6; font-weight: 300;
-}
+    .hero-subtitle {
+      color: var(--slate-400); font-size: clamp(1rem, 2.5vw, 1.25rem);
+      max-width: 640px; margin: 0 auto 32px; font-weight: 300;
+      line-height: 1.7;
+      opacity: 0; animation: fadeInUp 0.8s ease-out 0.4s forwards;
+    }
 
-/* ══════════ VR Section ══════════ */
-.vr-section { position: relative; overflow: hidden; }
-.vr-glow {
-position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-width: 500px; height: 500px; background: rgba(192,120,64,0.05);
-border-radius: 50%; filter: blur(60px); pointer-events: none;
-}
-.vr-card {
-max-width: 800px; margin: 0 auto; padding: 64px;
-text-align: center; position: relative; overflow: hidden; border-radius: 24px;
-}
-.vr-corner {
-position: absolute; width: 80px; height: 80px;
-border-color: rgba(192,120,64,0.2); border-style: solid; border-width: 0;
-}
-.vr-corner.tl { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; border-top-left-radius: 24px; }
-.vr-corner.tr { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; border-top-right-radius: 24px; }
-.vr-corner.bl { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; border-bottom-left-radius: 24px; }
-.vr-corner.br { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; border-bottom-right-radius: 24px; }
-.vr-icon {
-width: 80px; height: 80px; margin: 0 auto 24px; border-radius: 16px;
-background: linear-gradient(135deg, rgba(192,120,64,0.2), rgba(192,120,64,0.05));
-display: flex; align-items: center; justify-content: center;
-}
-.vr-icon svg { width: 40px; height: 40px; color: var(--copper); }
-.vr-title {
-font-family: 'Playfair Display', serif; color: var(--ivory);
-font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; margin-bottom: 16px;
-}
-.vr-desc {
-color: var(--slate-400); font-size: 18px; margin-bottom: 40px;
-max-width: 560px; margin-left: auto; margin-right: auto;
-font-weight: 300; line-height: 1.6;
-}
-.vr-btn {
-display: inline-flex; align-items: center; gap: 12px;
-padding: 20px 40px;
-background: linear-gradient(135deg, var(--copper), var(--copper-light));
-color: var(--navy-950); font-weight: 700; border-radius: 16px;
-font-size: 20px; box-shadow: 0 8px 40px rgba(192,120,64,0.2);
-transition: all 0.3s; animation: pulseGlow 3s ease-in-out infinite;
-}
-.vr-btn:hover {
-transform: scale(1.05); box-shadow: 0 8px 50px rgba(192,120,64,0.45);
-}
-.vr-btn svg { width: 24px; height: 24px; }
-.vr-btn .arrow { transition: transform 0.3s; }
-.vr-btn:hover .arrow { transform: translateX(4px); }
-.vr-hint { color: var(--slate-500); font-size: 13px; margin-top: 24px; }
-@media (max-width: 640px) {
-.vr-card { padding: 40px 24px; }
-}
+    /* Quote Block */
+    .quote-block {
+      max-width: 680px; margin: 0 auto 40px;
+      opacity: 0; animation: fadeInUp 0.8s ease-out 0.5s forwards;
+    }
+    .quote-inner {
+      position: relative; padding: 40px;
+      background: linear-gradient(135deg, rgba(192,120,64,0.1) 0%, rgba(20,30,56,0.7) 40%, rgba(192,120,64,0.06) 100%);
+      border: 1px solid rgba(192,120,64,0.3); border-radius: 20px;
+      backdrop-filter: blur(16px); overflow: hidden;
+    }
+    .quote-inner::before {
+      content: '\201C'; position: absolute; top: -10px; left: 20px;
+      font-size: 8rem; font-family: 'Playfair Display', serif;
+      color: rgba(192,120,64,0.1); line-height: 1; pointer-events: none;
+    }
+    .quote-inner::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, transparent, #c07840, #f0c8a0, #c07840, transparent);
+    }
+    .quote-text {
+      position: relative; z-index: 1; color: var(--ivory);
+      font-family: 'Playfair Display', serif; font-size: clamp(1.4rem, 3vw, 1.875rem);
+      font-style: italic; line-height: 1.5; letter-spacing: 0.02em; text-align: center;
+    }
+    .quote-divider {
+      width: 64px; height: 1px; margin: 20px auto;
+      background: linear-gradient(90deg, transparent, var(--copper), transparent);
+    }
+    .quote-author {
+      text-align: center; position: relative; z-index: 1;
+    }
+    .quote-author-name {
+      color: var(--copper-light); font-family: 'Playfair Display', serif;
+      font-size: 16px; font-weight: 600; letter-spacing: 0.05em;
+      font-style: normal;
+    }
+    .quote-author-desc {
+      color: var(--slate-400); font-size: 13px; margin-top: 8px;
+      max-width: 480px; margin-left: auto; margin-right: auto;
+      line-height: 1.6; font-weight: 300;
+    }
 
-/* ══════════ Authors ══════════ */
-.authors-grid {
-display: grid; grid-template-columns: 1fr; gap: 32px;
-max-width: 640px; margin: 0 auto;
-}
-@media (min-width: 640px) { .authors-grid { grid-template-columns: repeat(2, 1fr); } }
-.author-card {
-padding: 40px 32px; display: flex; flex-direction: column;
-align-items: center; justify-content: center;
-cursor: pointer; transition: all 0.3s;
-}
-.author-card:hover {
-border-color: rgba(192,120,64,0.4);
-box-shadow: 0 8px 40px rgba(192,120,64,0.1);
-}
-.author-tg-icon {
-width: 56px; height: 56px; margin-bottom: 20px; border-radius: 50%;
-background: linear-gradient(135deg, rgba(192,120,64,0.2), rgba(192,120,64,0.05));
-display: flex; align-items: center; justify-content: center;
-transition: all 0.3s;
-}
-.author-card:hover .author-tg-icon {
-transform: scale(1.1);
-background: linear-gradient(135deg, rgba(192,120,64,0.3), rgba(192,120,64,0.15));
-}
-.author-tg-icon svg { width: 28px; height: 28px; color: var(--copper); }
-.author-name {
-color: var(--ivory); font-family: 'Playfair Display', serif;
-font-size: 20px; font-weight: 600; line-height: 1.3;
-text-align: center; transition: color 0.3s;
-}
-.author-card:hover .author-name { color: var(--copper-light); }
-.author-role {
-color: var(--slate-500); font-size: 13px; margin-top: 8px;
-}
-.author-hint {
-margin-top: 16px; display: flex; align-items: center; gap: 6px;
-color: rgba(192,120,64,0.4); transition: color 0.3s;
-}
-.author-card:hover .author-hint { color: var(--copper); }
-.author-hint span { font-size: 12px; letter-spacing: 0.08em; }
-.author-hint svg {
-width: 14px; height: 14px; transition: transform 0.3s;
-}
-.author-card:hover .author-hint svg { transform: translateX(4px); }
+    /* CTA Buttons */
+    .hero-cta {
+      display: flex; flex-wrap: wrap; gap: 16px;
+      justify-content: center;
+      opacity: 0; animation: fadeInUp 0.8s ease-out 0.6s forwards;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 16px 32px;
+      background: linear-gradient(135deg, var(--copper), var(--copper-light));
+      color: var(--navy-950); font-weight: 600; border-radius: 12px;
+      font-size: 18px; box-shadow: 0 8px 30px rgba(192,120,64,0.25);
+      transition: all 0.3s; animation: pulseGlow 3s ease-in-out infinite;
+    }
+    .btn-primary:hover {
+      transform: scale(1.05); box-shadow: 0 8px 40px rgba(192,120,64,0.45);
+    }
+    .btn-primary svg {
+      width: 20px; height: 20px; transition: transform 0.3s;
+    }
+    .btn-primary:hover svg { transform: translateX(4px); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 16px 32px;
+      border: 1px solid rgba(192,120,64,0.25);
+      color: var(--copper-light); border-radius: 12px;
+      font-size: 18px; transition: all 0.3s;
+    }
+    .btn-secondary:hover {
+      background: rgba(192,120,64,0.1); border-color: rgba(192,120,64,0.5);
+    }
+    .btn-secondary svg { width: 20px; height: 20px; }
 
-/* ══════════ Footer ══════════ */
-.footer {
-background: var(--navy-950); border-top: 1px solid rgba(192,120,64,0.1);
-padding: 40px 0; text-align: center;
-}
-.footer-inner {
-max-width: 1152px; margin: 0 auto; padding: 0 24px;
-display: flex; flex-direction: column; align-items: center; gap: 16px;
-}
-.footer-brand {
-display: flex; align-items: center; gap: 12px;
-}
-.footer-logo {
-width: 32px; height: 32px; border-radius: 8px;
-background: linear-gradient(135deg, var(--copper), var(--copper-light));
-display: flex; align-items: center; justify-content: center;
-color: var(--navy-950); font-weight: 700; font-family: 'Playfair Display', serif; font-size: 14px;
-}
-.footer-brand-text {
-color: var(--copper-light); font-family: 'Playfair Display', serif;
-letter-spacing: 0.05em;
-}
-.footer-copy { color: var(--slate-500); font-size: 13px; font-weight: 300; }
-.footer-gh {
-display: inline-flex; align-items: center; gap: 8px;
-color: var(--slate-500); font-size: 13px; transition: color 0.3s;
-}
-.footer-gh:hover { color: var(--copper-light); }
-.footer-gh svg { width: 20px; height: 20px; }
+    /* Scroll indicator */
+    .scroll-indicator {
+      position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      opacity: 0; animation: fadeInUp 0.8s ease-out 1.5s forwards;
+    }
+    .scroll-indicator span {
+      color: var(--slate-500); font-size: 11px;
+      letter-spacing: 0.2em; text-transform: uppercase;
+    }
+    .scroll-mouse {
+      width: 24px; height: 40px; border: 2px solid var(--slate-600);
+      border-radius: 9999px; display: flex; justify-content: center; padding-top: 8px;
+    }
+    .scroll-dot {
+      width: 6px; height: 12px; background: var(--copper);
+      border-radius: 9999px; animation: bounce 1.5s infinite;
+    }
 
-/* ══════════ Pattern overlay ══════════ */
-.pattern {
-background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23c07840' fill-opacity='0.03'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2h2v2h18v2H22v2.5L20 20.5z'/%3E%3C/g%3E%3C/svg%3E");
-}
+    /* ══════════ Sections ══════════ */
+    .section {
+      padding: 96px 0;
+    }
+    .section-alt {
+      background: linear-gradient(180deg, #080d1a 0%, #0e1629 50%, #080d1a 100%);
+    }
+    .section-base {
+      background: linear-gradient(180deg, #0e1629 0%, #080d1a 100%);
+    }
+    .section-inner {
+      max-width: 1152px; margin: 0 auto; padding: 0 24px;
+    }
+    .section-header {
+      text-align: center; margin-bottom: 72px;
+    }
+    .section-label {
+      color: var(--copper); font-size: 13px; letter-spacing: 0.3em;
+      text-transform: uppercase; font-weight: 500;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif; color: var(--ivory);
+      font-size: clamp(2rem, 5vw, 3.5rem); margin-top: 16px; font-weight: 700;
+    }
+    .text-gradient {
+      background: linear-gradient(135deg, #c07840, #f0c8a0, #c07840);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .section-desc {
+      color: var(--slate-400); margin-top: 16px; font-size: 18px;
+      font-weight: 300; max-width: 640px; margin-left: auto; margin-right: auto;
+    }
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(192,120,64,0.3), transparent);
+    }
 
-/* ══════════ VR Museum Overlay Styles ══════════ */
-#vr-museum-overlay {
-position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-z-index: 9999; display: none;
-}
-#vr-museum-overlay.active { display: block; }
-#vr-museum-overlay a-scene { width: 100%; height: 100vh; }
-#vr-back-btn {
-position: fixed; top: 20px; left: 20px; z-index: 10000;
-padding: 12px 24px; background: rgba(8,13,26,0.9);
-border: 1px solid rgba(192,120,64,0.3); color: var(--copper-light);
-border-radius: 8px; font-size: 14px; cursor: pointer;
-display: none; align-items: center; gap: 8px;
-transition: all 0.3s; backdrop-filter: blur(10px);
-}
-#vr-back-btn:hover {
-background: rgba(192,120,64,0.2); border-color: var(--copper);
-}
-#vr-back-btn svg { width: 18px; height: 18px; }
+    /* ══════════ Reveal animation ══════════ */
+    .reveal {
+      opacity: 0; transform: translateY(40px);
+      transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+    }
+    .reveal.visible {
+      opacity: 1; transform: translateY(0);
+    }
 
-/* VR Loading Screen */
-#vr-loading-screen {
-position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-display: flex; flex-direction: column; align-items: center; justify-content: center;
-z-index: 10001; transition: opacity 1s ease;
-}
-#vr-loading-screen.fade-out { opacity: 0; pointer-events: none; }
-#vr-loading-screen h1 {
-color: #e0c97f; font-size: 2.5rem; margin-bottom: 10px;
-text-shadow: 0 0 20px rgba(224,201,127,0.5); letter-spacing: 4px;
-}
-#vr-loading-screen p { color: #aaa; font-size: 1rem; margin-bottom: 30px; }
-.vr-loader {
-width: 60px; height: 60px; border: 3px solid rgba(224,201,127,0.2);
-border-top: 3px solid #e0c97f; border-radius: 50%;
-animation: spin 1s linear infinite;
-}
-.vr-enter-btn {
-margin-top: 30px; padding: 15px 40px; background: linear-gradient(135deg, #c9a84c, #e0c97f);
-color: #1a1a2e; border: none; border-radius: 8px; font-size: 1.1rem;
-cursor: pointer; font-weight: bold; letter-spacing: 2px;
-display: none; transition: transform 0.3s;
-}
-.vr-enter-btn:hover { transform: scale(1.05); }
+    /* ══════════ Cards ══════════ */
+    .card {
+      background: linear-gradient(145deg, rgba(20,30,56,0.7), rgba(14,22,41,0.9));
+      border: 1px solid rgba(192,120,64,0.12);
+      backdrop-filter: blur(12px); border-radius: 16px;
+      transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+    }
+    .card:hover {
+      border-color: rgba(192,120,64,0.35);
+      box-shadow: 0 8px 40px rgba(192,120,64,0.08);
+      transform: translateY(-4px);
+    }
 
-/* VR UI Overlays */
-#vr-crosshair {
-position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-width: 20px; height: 20px; z-index: 10002; pointer-events: none; opacity: 0.6;
-display: none;
-}
-#vr-crosshair::before, #vr-crosshair::after {
-content: ''; position: absolute; background: white;
-}
-#vr-crosshair::before { width: 2px; height: 20px; left: 9px; top: 0; }
-#vr-crosshair::after { width: 20px; height: 2px; top: 9px; left: 0; }
-#vr-info-panel {
-position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-background: rgba(0,0,0,0.75); color: white; padding: 12px 24px;
-border-radius: 12px; font-size: 0.9rem; z-index: 10002;
-backdrop-filter: blur(10px); border: 1px solid rgba(224,201,127,0.3);
-pointer-events: none; text-align: center; display: none;
-}
-#vr-info-panel span { color: #e0c97f; font-weight: bold; }
+    /* ══════════ Timeline ══════════ */
+    .timeline { position: relative; }
+    .timeline-line {
+      display: none; position: absolute; left: 50%; top: 0; bottom: 0;
+      width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(192,120,64,0.5) 15%, rgba(192,120,64,0.5) 85%, transparent);
+    }
+    .timeline-item {
+      display: flex; align-items: center; margin-bottom: 32px;
+    }
+    .timeline-content { width: 100%; }
+    .timeline-card { padding: 24px 32px; }
+    .timeline-year-row {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+    }
+    .timeline-year {
+      color: var(--copper); font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; font-weight: 500; letter-spacing: 0.1em;
+    }
+    .timeline-year-line {
+      width: 32px; height: 1px; background: rgba(192,120,64,0.3);
+    }
+    .timeline-card-title {
+      font-family: 'Playfair Display', serif; color: var(--ivory);
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem); font-weight: 600; margin-bottom: 12px;
+    }
+    .timeline-card-text {
+      color: var(--slate-400); line-height: 1.7; font-weight: 300; font-size: 15px;
+    }
+    .timeline-dot-wrap {
+      display: none; align-items: center; justify-content: center;
+      width: 0; position: relative; flex-shrink: 0;
+    }
+    .timeline-dot {
+      position: absolute; width: 16px; height: 16px;
+      background: var(--copper); border-radius: 50%;
+      box-shadow: 0 0 15px rgba(192,120,64,0.3); z-index: 2;
+    }
+    .timeline-dot-ring {
+      position: absolute; width: 32px; height: 32px;
+      border: 2px solid rgba(192,120,64,0.25); border-radius: 50%;
+    }
+    .timeline-spacer { display: none; width: 50%; }
 
-/* VR Modal Styles */
-#vr-modal-overlay {
-position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-background: rgba(0, 0, 0, 0.9); z-index: 10003;
-display: none; justify-content: center; align-items: center;
-opacity: 0; transition: opacity 0.5s ease;
-backdrop-filter: blur(8px);
-}
-#vr-modal-overlay.active { display: flex; opacity: 1; pointer-events: auto; }
-.vr-modal-content {
-background: linear-gradient(135deg, #0f111a 0%, #161b2c 100%);
-border: 1px solid #c9a84c; border-radius: 4px; padding: 0;
-max-width: 700px; width: 90%; color: #f5f0e8;
-position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(201, 168, 76, 0.15);
-text-align: left; overflow: hidden; display: flex; flex-direction: column;
-animation: slideUp 0.4s ease-out;
-}
-@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.vr-modal-header {
-background: linear-gradient(90deg, #1c2333, #151925);
-padding: 25px 40px; border-bottom: 1px solid #c9a84c; position: relative;
-}
-.vr-modal-title {
-font-family: 'Playfair Display', 'Times New Roman', serif;
-font-size: 2.2rem; color: #e0c97f; margin: 0;
-letter-spacing: 1px; text-transform: uppercase;
-text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-}
-.vr-modal-artist {
-font-family: 'Segoe UI', sans-serif; font-size: 1.1rem; color: #aebfd6;
-margin-top: 8px; font-weight: 300; letter-spacing: 0.5px;
-}
-.vr-modal-body {
-padding: 40px; max-height: 60vh; overflow-y: auto;
-background: radial-gradient(circle at top right, rgba(30, 41, 59, 0.3), transparent);
-}
-.vr-modal-body::-webkit-scrollbar { width: 8px; }
-.vr-modal-body::-webkit-scrollbar-track { background: #0f111a; }
-.vr-modal-body::-webkit-scrollbar-thumb { background: #3e4c63; border-radius: 4px; }
-.vr-modal-desc {
-font-family: 'Georgia', serif; font-size: 1.1rem; line-height: 1.9;
-color: #d1d5db; margin: 0; text-align: justify;
-}
-.vr-modal-desc h3 {
-color: #e0c97f; font-family: 'Playfair Display', 'Times New Roman', serif;
-font-size: 1.3rem; margin: 20px 0 12px 0; padding-bottom: 8px;
-border-bottom: 1px solid rgba(224, 201, 127, 0.3); letter-spacing: 1px;
-}
-.vr-modal-desc h3:first-child { margin-top: 0; }
-.vr-modal-desc p { margin: 0 0 16px 0; text-indent: 1.5em; }
-.vr-modal-desc p:last-child { margin-bottom: 0; }
-.vr-modal-desc em {
-color: #a8c4e0; font-style: italic;
-background: rgba(168, 196, 224, 0.1); padding: 2px 6px; border-radius: 3px;
-}
-.vr-modal-desc strong { color: #e0c97f; font-weight: 600; }
-.vr-modal-close {
-position: absolute; top: 15px; right: 20px; color: #7a8ba6;
-font-size: 2.5rem; cursor: pointer; background: none; border: none;
-line-height: 1; transition: color 0.3s;
-}
-.vr-modal-close:hover { color: #e0c97f; }
-.vr-modal-footer {
-padding: 15px 40px; background: #0d1017;
-border-top: 1px solid rgba(201, 168, 76, 0.2);
-font-size: 0.8rem; color: #556; text-transform: uppercase;
-letter-spacing: 2px; text-align: center;
-}
-</style>
+    @media (min-width: 769px) {
+      .timeline-line { display: block; }
+      .timeline-item { margin-bottom: 64px; }
+      .timeline-content { width: 50%; }
+      .timeline-dot-wrap { display: flex; }
+      .timeline-spacer { display: block; }
+      .timeline-item.left .timeline-content { padding-right: 64px; text-align: right; }
+      .timeline-item.left .timeline-year-row { justify-content: flex-end; }
+      .timeline-item.left .timeline-spacer { order: 2; }
+      .timeline-item.right .timeline-content { padding-left: 64px; order: 2; }
+    }
+
+    /* ══════════ Controls Grid ══════════ */
+    .controls-grid {
+      display: grid; grid-template-columns: 1fr; gap: 24px;
+    }
+    @media (min-width: 640px) { .controls-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1024px) { .controls-grid { grid-template-columns: repeat(4, 1fr); } }
+    .control-card { padding: 28px; text-align: center; height: 100%; }
+    .control-icon {
+      width: 56px; height: 56px; margin: 0 auto 20px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(192,120,64,0.2), rgba(192,120,64,0.05));
+      display: flex; align-items: center; justify-content: center;
+      color: var(--copper); transition: all 0.3s;
+    }
+    .control-card:hover .control-icon {
+      transform: scale(1.1);
+      background: linear-gradient(135deg, rgba(192,120,64,0.3), rgba(192,120,64,0.1));
+    }
+    .control-icon svg { width: 28px; height: 28px; }
+    .control-title {
+      font-family: 'Playfair Display', serif; color: var(--ivory);
+      font-size: 18px; font-weight: 600; margin-bottom: 12px;
+    }
+    .control-desc {
+      color: var(--slate-400); font-size: 14px; line-height: 1.6; font-weight: 300;
+    }
+
+    /* ══════════ VR Section ══════════ */
+    .vr-section { position: relative; overflow: hidden; }
+    .vr-glow {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 500px; height: 500px; background: rgba(192,120,64,0.05);
+      border-radius: 50%; filter: blur(60px); pointer-events: none;
+    }
+    .vr-card {
+      max-width: 800px; margin: 0 auto; padding: 64px;
+      text-align: center; position: relative; overflow: hidden; border-radius: 24px;
+    }
+    .vr-corner {
+      position: absolute; width: 80px; height: 80px;
+      border-color: rgba(192,120,64,0.2); border-style: solid; border-width: 0;
+    }
+    .vr-corner.tl { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; border-top-left-radius: 24px; }
+    .vr-corner.tr { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; border-top-right-radius: 24px; }
+    .vr-corner.bl { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; border-bottom-left-radius: 24px; }
+    .vr-corner.br { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; border-bottom-right-radius: 24px; }
+    .vr-icon {
+      width: 80px; height: 80px; margin: 0 auto 24px; border-radius: 16px;
+      background: linear-gradient(135deg, rgba(192,120,64,0.2), rgba(192,120,64,0.05));
+      display: flex; align-items: center; justify-content: center;
+    }
+    .vr-icon svg { width: 40px; height: 40px; color: var(--copper); }
+    .vr-title {
+      font-family: 'Playfair Display', serif; color: var(--ivory);
+      font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; margin-bottom: 16px;
+    }
+    .vr-desc {
+      color: var(--slate-400); font-size: 18px; margin-bottom: 40px;
+      max-width: 560px; margin-left: auto; margin-right: auto;
+      font-weight: 300; line-height: 1.6;
+    }
+    .vr-btn {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 20px 40px;
+      background: linear-gradient(135deg, var(--copper), var(--copper-light));
+      color: var(--navy-950); font-weight: 700; border-radius: 16px;
+      font-size: 20px; box-shadow: 0 8px 40px rgba(192,120,64,0.2);
+      transition: all 0.3s; animation: pulseGlow 3s ease-in-out infinite;
+    }
+    .vr-btn:hover {
+      transform: scale(1.05); box-shadow: 0 8px 50px rgba(192,120,64,0.45);
+    }
+    .vr-btn svg { width: 24px; height: 24px; }
+    .vr-btn .arrow { transition: transform 0.3s; }
+    .vr-btn:hover .arrow { transform: translateX(4px); }
+    .vr-hint { color: var(--slate-500); font-size: 13px; margin-top: 24px; }
+
+    @media (max-width: 640px) {
+      .vr-card { padding: 40px 24px; }
+    }
+
+    /* ══════════ Authors ══════════ */
+    .authors-grid {
+      display: grid; grid-template-columns: 1fr; gap: 32px;
+      max-width: 640px; margin: 0 auto;
+    }
+    @media (min-width: 640px) { .authors-grid { grid-template-columns: repeat(2, 1fr); } }
+    .author-card {
+      padding: 40px 32px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.3s;
+    }
+    .author-card:hover {
+      border-color: rgba(192,120,64,0.4);
+      box-shadow: 0 8px 40px rgba(192,120,64,0.1);
+    }
+    .author-tg-icon {
+      width: 56px; height: 56px; margin-bottom: 20px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(192,120,64,0.2), rgba(192,120,64,0.05));
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.3s;
+    }
+    .author-card:hover .author-tg-icon {
+      transform: scale(1.1);
+      background: linear-gradient(135deg, rgba(192,120,64,0.3), rgba(192,120,64,0.15));
+    }
+    .author-tg-icon svg { width: 28px; height: 28px; color: var(--copper); }
+    .author-name {
+      color: var(--ivory); font-family: 'Playfair Display', serif;
+      font-size: 20px; font-weight: 600; line-height: 1.3;
+      text-align: center; transition: color 0.3s;
+    }
+    .author-card:hover .author-name { color: var(--copper-light); }
+    .author-role {
+      color: var(--slate-500); font-size: 13px; margin-top: 8px;
+    }
+    .author-hint {
+      margin-top: 16px; display: flex; align-items: center; gap: 6px;
+      color: rgba(192,120,64,0.4); transition: color 0.3s;
+    }
+    .author-card:hover .author-hint { color: var(--copper); }
+    .author-hint span { font-size: 12px; letter-spacing: 0.08em; }
+    .author-hint svg {
+      width: 14px; height: 14px; transition: transform 0.3s;
+    }
+    .author-card:hover .author-hint svg { transform: translateX(4px); }
+
+    /* ══════════ Footer ══════════ */
+    .footer {
+      background: var(--navy-950); border-top: 1px solid rgba(192,120,64,0.1);
+      padding: 40px 0; text-align: center;
+    }
+    .footer-inner {
+      max-width: 1152px; margin: 0 auto; padding: 0 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .footer-brand {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .footer-logo {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--copper), var(--copper-light));
+      display: flex; align-items: center; justify-content: center;
+      color: var(--navy-950); font-weight: 700; font-family: 'Playfair Display', serif; font-size: 14px;
+    }
+    .footer-brand-text {
+      color: var(--copper-light); font-family: 'Playfair Display', serif;
+      letter-spacing: 0.05em;
+    }
+    .footer-copy { color: var(--slate-500); font-size: 13px; font-weight: 300; }
+    .footer-gh {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--slate-500); font-size: 13px; transition: color 0.3s;
+    }
+    .footer-gh:hover { color: var(--copper-light); }
+    .footer-gh svg { width: 20px; height: 20px; }
+
+    /* ══════════ Pattern overlay ══════════ */
+    .pattern {
+      background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23c07840' fill-opacity='0.03'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2h2v2h18v2H22v2.5L20 20.5z'/%3E%3C/g%3E%3C/svg%3E");
+    }
+  </style>
 </head>
 <body>
 
-<!-- ═══════════ LANDING PAGE WRAPPER ═══════════ -->
-<div class="landing-page">
-
-<!-- ═══════════ NAVBAR ═══════════ -->
-<nav class="navbar scrolled" id="navbar">
-<div class="nav-inner">
-<a href="#hero" class="nav-logo">
-<div class="nav-logo-icon">А</div>
-<span class="nav-logo-text">Крепость Анапа</span>
-</a>
-<div class="nav-links">
-<a href="#hero">Главная</a>
-<a href="#history">История</a>
-<a href="#controls">Управление</a>
-<a href="#vr">VR Музей</a>
-<a href="#authors">Авторы</a>
-</div>
-<button class="nav-burger" id="burger" aria-label="Меню">
-<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
-</svg>
-</button>
-</div>
-<div class="nav-mobile" id="mobileMenu">
-<a href="#hero">Главная</a>
-<a href="#history">История</a>
-<a href="#controls">Управление</a>
-<a href="#vr">VR Музей</a>
-<a href="#authors">Авторы</a>
-</div>
-</nav>
-
-<!-- ═══════════ HERO ═══════════ -->
-<header class="hero pattern" id="hero">
-<div class="hero-orbs">
-<div class="hero-orb hero-orb-1"></div>
-<div class="hero-orb hero-orb-2"></div>
-<div class="hero-ring hero-ring-1"></div>
-<div class="hero-ring hero-ring-2"></div>
-</div>
-<div class="hero-content">
-<div class="hero-badge">
-<span class="hero-badge-dot"></span>
-<span class="hero-badge-text">Виртуальная реальность</span>
-</div>
-<h1 class="hero-title">
-<span class="hero-title-top">Крепость</span>
-<span class="hero-title-bottom">Анапа</span>
-</h1>
-<p class="hero-subtitle">
-Погрузитесь в историю русско-турецких войн и исследуйте легендарную крепость в виртуальной реальности
-</p>
-<!-- Quote -->
-<div class="quote-block">
-<div class="quote-inner">
-<blockquote>
-<p class="quote-text">«История — это учительница жизни»</p>
-</blockquote>
-<div class="quote-divider"></div>
-<div class="quote-author">
-<cite class="quote-author-name">Марк Туллий Цицерон</cite>
-<p class="quote-author-desc">
-Древнеримский оратор, философ и государственный деятель (106–43 до н. э.).
-Один из величайших ораторов античности, чьи труды по риторике и философии
-стали фундаментом европейской интеллектуальной традиции.
-</p>
-</div>
-</div>
-</div>
-<!-- CTA -->
-<div class="hero-cta">
-<a href="#vr" class="btn-primary" onclick="openVRMuseum(); return false;">
-<span>Войти в VR музей</span>
-<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
-</a>
-<a href="#history" class="btn-secondary">
-<span>Узнать историю</span>
-<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
-</a>
-</div>
-</div>
-<div class="scroll-indicator">
-<span>Прокрутите вниз</span>
-<div class="scroll-mouse"><div class="scroll-dot"></div></div>
-</div>
-</header>
-
-<div class="divider"></div>
-
-<!-- ═══════════ HISTORY ═══════════ -->
-<section class="section section-alt pattern" id="history">
-<div class="section-inner">
-<div class="section-header reveal visible">
-<span class="section-label">Хронология событий</span>
-<h2 class="section-title">История <span class="text-gradient">крепости</span></h2>
-<p class="section-desc">Крепость Анапа — ключевой форпост русско-турецких войн XVIII–XIX веков</p>
-</div>
-<div class="timeline">
-<div class="timeline-line"></div>
-<!-- 1781 -->
-<div class="timeline-item left reveal visible">
-<div class="timeline-content">
-<div class="timeline-card card">
-<div class="timeline-year-row">
-<span class="timeline-year">1781</span>
-<span class="timeline-year-line"></span>
-</div>
-<h3 class="timeline-card-title">Основание крепости</h3>
-<p class="timeline-card-text">Османская империя возвела крепость Анапа на черноморском побережье Кавказа. Крепость стала важнейшим укреплённым пунктом для контроля над регионом и опорой турецкого влияния среди горских народов.</p>
-</div>
-</div>
-<div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
-<div class="timeline-spacer"></div>
-</div>
-<!-- 1788 -->
-<div class="timeline-item right reveal visible">
-<div class="timeline-content">
-<div class="timeline-card card">
-<div class="timeline-year-row">
-<span class="timeline-year">1788</span>
-<span class="timeline-year-line"></span>
-</div>
-<h3 class="timeline-card-title">Первый штурм</h3>
-<p class="timeline-card-text">Во время русско-турецкой войны 1787–1791 годов войска генерал-аншефа П. А. Текели предприняли попытку взять крепость. Штурм окончился неудачей: мощные укрепления и численный гарнизон не позволили овладеть Анапой.</p>
-</div>
-</div>
-<div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
-<div class="timeline-spacer"></div>
-</div>
-<!-- 1791 -->
-<div class="timeline-item left reveal visible">
-<div class="timeline-content">
-<div class="timeline-card card">
-<div class="timeline-year-row">
-<span class="timeline-year">1791</span>
-<span class="timeline-year-line"></span>
-</div>
-<h3 class="timeline-card-title">Взятие Гудовичем</h3>
-<p class="timeline-card-text">22 июня 1791 года генерал И. В. Гудович штурмом взял крепость Анапа. Бой был ожесточённым — потери с обеих сторон были значительны. Однако по Ясскому мирному договору 1792 года крепость была возвращена Османской империи.</p>
-</div>
-</div>
-<div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
-<div class="timeline-spacer"></div>
-</div>
-<!-- 1807–1812 -->
-<div class="timeline-item right reveal visible">
-<div class="timeline-content">
-<div class="timeline-card card">
-<div class="timeline-year-row">
-<span class="timeline-year">1807–1812</span>
-<span class="timeline-year-line"></span>
-</div>
-<h3 class="timeline-card-title">Война и Бухарестский мир</h3>
-<p class="timeline-card-text">В ходе русско-турецкой войны 1806–1812 годов Анапа вновь стала объектом боевых действий. Российский флот и сухопутные силы проводили операции в районе крепости. По Бухарестскому мирному договору 1812 года крепость осталась за Османской империей.</p>
-</div>
-</div>
-<div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
-<div class="timeline-spacer"></div>
-</div>
-<!-- 1828 -->
-<div class="timeline-item left reveal visible">
-<div class="timeline-content">
-<div class="timeline-card card">
-<div class="timeline-year-row">
-<span class="timeline-year">1828</span>
-<span class="timeline-year-line"></span>
-</div>
-<h3 class="timeline-card-title">Окончательное взятие</h3>
-<p class="timeline-card-text">В русско-турецкую войну 1828–1829 годов эскадра вице-адмирала А. С. Грейга и десант под командованием контр-адмирала А. С. Меншикова осадили Анапу. 12 июня 1828 года гарнизон капитулировал. По Адрианопольскому мирному договору 1829 года Анапа окончательно вошла в состав Российской империи.</p>
-</div>
-</div>
-<div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
-<div class="timeline-spacer"></div>
-</div>
-<!-- Наследие -->
-<div class="timeline-item right reveal visible">
-<div class="timeline-content">
-<div class="timeline-card card">
-<div class="timeline-year-row">
-<span class="timeline-year">Наследие</span>
-<span class="timeline-year-line"></span>
-</div>
-<h3 class="timeline-card-title">Крепость сегодня</h3>
-<p class="timeline-card-text">Русские ворота — единственный сохранившийся фрагмент крепости — являются памятником архитектуры и главным историческим символом Анапы. Они были отреставрированы и имеют статус объекта культурного наследия.</p>
-</div>
-</div>
-<div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
-<div class="timeline-spacer"></div>
-</div>
-</div>
-</div>
-</section>
-
-<div class="divider"></div>
-
-<!-- ═══════════ CONTROLS ═══════════ -->
-<section class="section section-base" id="controls">
-<div class="section-inner">
-<div class="section-header reveal visible">
-<span class="section-label">Навигация</span>
-<h2 class="section-title">Управление <span class="text-gradient">музеем</span></h2>
-<p class="section-desc">Выберите удобный для вас способ навигации</p>
-</div>
-<div class="controls-grid">
-<!-- Мышь -->
-<div class="card control-card reveal visible">
-<div class="control-icon">
-<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59"></path></svg>
-</div>
-<h3 class="control-title">Мышь</h3>
-<p class="control-desc">Зажмите левую кнопку мыши и перемещайте для обзора. Колёсико — приближение и отдаление.</p>
-</div>
-<!-- Клавиатура -->
-<div class="card control-card reveal visible">
-<div class="control-icon">
-<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"></path></svg>
-</div>
-<h3 class="control-title">Клавиатура</h3>
-<p class="control-desc">W A S D или стрелки — перемещение. Пробел — подъём, Shift — спуск.</p>
-</div>
-<!-- Смартфон -->
-<div class="card control-card reveal visible">
-<div class="control-icon">
-<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"></path></svg>
-</div>
-<h3 class="control-title">Смартфон</h3>
-<p class="control-desc">Проводите пальцем для осмотра. Двойное касание — взаимодействие с экспонатом.</p>
-</div>
-<!-- VR-шлем -->
-<div class="card control-card reveal visible">
-<div class="control-icon">
-<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5V18M15 7.5V18M3 16.811V8.69c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 010 1.954l-7.108 4.061A1.125 1.125 0 013 16.811z"></path></svg>
-</div>
-<h3 class="control-title">VR-шлем</h3>
-<p class="control-desc">Наденьте шлем и используйте контроллеры. Наведите луч на объект и нажмите триггер.</p>
-</div>
-</div>
-</div>
-</section>
-
-<div class="divider"></div>
-
-<!-- ═══════════ VR MUSEUM ═══════════ -->
-<section class="section section-alt vr-section" id="vr">
-<div class="vr-glow"></div>
-<div class="section-inner" style="position:relative;z-index:1;">
-<div class="reveal visible">
-<div class="card vr-card">
-<div class="vr-corner tl"></div>
-<div class="vr-corner tr"></div>
-<div class="vr-corner bl"></div>
-<div class="vr-corner br"></div>
-<div class="vr-icon">
-<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"></path></svg>
-</div>
-<h2 class="vr-title">Готовы к <span class="text-gradient">путешествию?</span></h2>
-<p class="vr-desc">Перенеситесь в XVIII–XIX века и исследуйте крепость Анапа в полном погружении. Доступно на всех устройствах.</p>
-<button onclick="openVRMuseum()" class="vr-btn">
-<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-<span>Открыть VR музей</span>
-<svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
-</button>
-<p class="vr-hint">Рекомендуемые браузеры: Chrome, Firefox, Edge</p>
-</div>
-</div>
-</div>
-</section>
-
-<div class="divider"></div>
-
-<!-- ═══════════ AUTHORS ═══════════ -->
-<section class="section section-base" id="authors">
-<div class="section-inner">
-<div class="section-header reveal visible">
-<span class="section-label">Команда проекта</span>
-<h2 class="section-title">Авторы <span class="text-gradient">проекта</span></h2>
-</div>
-<div class="authors-grid">
-<!-- Быков Артём -->
-<a href="https://t.me/geniyzizni" target="_blank" rel="noopener noreferrer" class="card author-card reveal visible">
-<div class="author-tg-icon">
-<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"></path></svg>
-</div>
-<p class="author-name">Быков Артём Денисович</p>
-<p class="author-role">Ученик 10 инженерного класса</p>
-<div class="author-hint">
-<span>Связаться</span>
-<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
-</div>
-</a>
-<!-- Кудрявцев Владимир -->
-<a href="https://t.me/GUBKI67city_boy" target="_blank" rel="noopener noreferrer" class="card author-card reveal visible">
-<div class="author-tg-icon">
-<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"></path></svg>
-</div>
-<p class="author-name">Кудрявцев Владимир Олегович</p>
-<p class="author-role">Ученик 10 инженерного класса</p>
-<div class="author-hint">
-<span>Связаться</span>
-<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
-</div>
-</a>
-</div>
-</div>
-</section>
-
-<!-- ═══════════ FOOTER ═══════════ -->
-<footer class="footer">
-<div class="footer-inner">
-<div class="footer-brand">
-<div class="footer-logo">А</div>
-<span class="footer-brand-text">VR Музей — Крепость Анапа</span>
-</div>
-<p class="footer-copy">Проект учеников 10 инженерного класса · 2025</p>
-<a href="https://github.com/" target="_blank" rel="noopener noreferrer" class="footer-gh">
-<svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"></path></svg>
-<span>GitHub</span>
-</a>
-</div>
-</footer>
-
-</div>
-<!-- ═══════════ END LANDING PAGE ═══════════ -->
-
-<!-- ═══════════ VR MUSEUM OVERLAY ═══════════ -->
-<div id="vr-museum-overlay">
-    <!-- Back Button -->
-    <button id="vr-back-btn" onclick="closeVRMuseum()">
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="#hero" class="nav-logo">
+        <div class="nav-logo-icon">А</div>
+        <span class="nav-logo-text">Крепость Анапа</span>
+      </a>
+      <div class="nav-links">
+        <a href="#hero">Главная</a>
+        <a href="#history">История</a>
+        <a href="#controls">Управление</a>
+        <a href="#vr">VR Музей</a>
+        <a href="#authors">Авторы</a>
+      </div>
+      <button class="nav-burger" id="burger" aria-label="Меню">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
-        <span>Вернуться на сайт</span>
-    </button>
+      </button>
+    </div>
+    <div class="nav-mobile" id="mobileMenu">
+      <a href="#hero">Главная</a>
+      <a href="#history">История</a>
+      <a href="#controls">Управление</a>
+      <a href="#vr">VR Музей</a>
+      <a href="#authors">Авторы</a>
+    </div>
+  </nav>
 
-    <!-- Loading Screen -->
-    <div id="vr-loading-screen">
-        <h1>🏛️ VR МУЗЕЙ</h1>
-        <p>Загрузка виртуальной галереи...</p>
-        <div class="vr-loader"></div>
-        <button class="vr-enter-btn" id="vr-enter-btn" onclick="enterVRMuseum()">ВОЙТИ В МУЗЕЙ</button>
+  <header class="hero pattern" id="hero">
+    <div class="hero-orbs">
+      <div class="hero-orb hero-orb-1"></div>
+      <div class="hero-orb hero-orb-2"></div>
+      <div class="hero-ring hero-ring-1"></div>
+      <div class="hero-ring hero-ring-2"></div>
     </div>
 
-    <!-- UI Overlays -->
-    <div id="vr-crosshair"></div>
-    <div id="vr-info-panel">
-        <span>WASD</span> — движение &nbsp;|&nbsp; <span>Мышь</span> — осмотр &nbsp;|&nbsp; <span>Клик</span> — картина
-    </div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        <span class="hero-badge-text">Виртуальная реальность</span>
+      </div>
 
-    <!-- Info Modal -->
-    <div id="vr-modal-overlay" onclick="closeVRModal(event)">
-        <div class="vr-modal-content" onclick="event.stopPropagation()">
-            <div class="vr-modal-header">
-                <h2 class="vr-modal-title" id="vr-m-title">Название картины</h2>
-                <div class="vr-modal-artist" id="vr-m-artist">Автор, Год</div>
-                <button class="vr-modal-close" onclick="closeVRModalDirect()">×</button>
-            </div>
-            <div class="vr-modal-body">
-                <p class="vr-modal-desc" id="vr-m-desc">Описание картины...</p>
-            </div>
-            <div class="vr-modal-footer">
-                Виртуальный Музей Искусств • Коллекция 2025
-            </div>
+      <h1 class="hero-title">
+        <span class="hero-title-top">Крепость</span>
+        <span class="hero-title-bottom">Анапа</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Погрузитесь в историю русско-турецких войн и исследуйте легендарную крепость в виртуальной реальности
+      </p>
+
+      <div class="quote-block">
+        <div class="quote-inner">
+          <blockquote>
+            <p class="quote-text">«История — это учительница жизни»</p>
+          </blockquote>
+          <div class="quote-divider"></div>
+          <div class="quote-author">
+            <cite class="quote-author-name">Марк Туллий Цицерон</cite>
+            <p class="quote-author-desc">
+              Древнеримский оратор, философ и&nbsp;государственный деятель (106–43&nbsp;до&nbsp;н.&nbsp;э.).
+              Один из&nbsp;величайших ораторов античности, чьи труды по&nbsp;риторике и&nbsp;философии
+              стали фундаментом европейской интеллектуальной традиции.
+            </p>
+          </div>
         </div>
+      </div>
+
+      <div class="hero-cta">
+        <a href="#vr" class="btn-primary">
+          <span>Войти в VR музей</span>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </a>
+        <a href="#history" class="btn-secondary">
+          <span>Узнать историю</span>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+        </a>
+      </div>
     </div>
 
-    <!-- A-Frame Scene -->
-    <a-scene
-        vr-mode-ui="enabled: true"
-        renderer="antialias: true; colorManagement: true; sortObjects: true; physicallyCorrectLights: false; highRefreshRate: true; maxCanvasWidth: 4096; maxCanvasHeight: 4096; precision: highp; logarithmicDepthBuffer: true"
-        fog="type: exponential; color: #1a1a2e; density: 0.012"
-        loading-screen="enabled: false"
-        id="vr-scene"
-    >
-        <a-assets timeout="30000"></a-assets>
+    <div class="scroll-indicator">
+      <span>Прокрутите вниз</span>
+      <div class="scroll-mouse"><div class="scroll-dot"></div></div>
+    </div>
+  </header>
 
-        <!-- Environment -->
-        <a-sky color="#0d1117"></a-sky>
+  <div class="divider"></div>
 
-        <!-- Floor -->
-        <a-plane position="0 0 0" rotation="-90 0 0" width="30" height="50"
-            material="color: #2a1f14; roughness: 0.3; metalness: 0.1" shadow="receive: true"></a-plane>
-        <a-plane position="0 0.02 0" rotation="-90 0 0" width="28" height="48"
-            material="color: #3d2b1f; roughness: 0.4; metalness: 0.05"></a-plane>
-        <a-plane position="0 0.04 0" rotation="-90 0 0" width="4" height="48"
-            material="color: #8b1a1a; roughness: 0.6; metalness: 0"></a-plane>
+  <section class="section section-alt pattern" id="history">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <span class="section-label">Хронология событий</span>
+        <h2 class="section-title">История <span class="text-gradient">крепости</span></h2>
+        <p class="section-desc">Крепость Анапа — ключевой форпост русско-турецких войн XVIII–XIX&nbsp;веков</p>
+      </div>
 
-        <!-- Ceiling -->
-        <a-plane position="0 8 0" rotation="90 0 0" width="30" height="50"
-            material="color: #f5f0e8; roughness: 0.9"></a-plane>
-        <a-box position="0 7.8 0" width="28" height="0.15" depth="48"
-            material="color: #e0c97f; roughness: 0.5; metalness: 0.3"></a-box>
+      <div class="timeline">
+        <div class="timeline-line"></div>
 
-        <!-- Walls -->
-        <a-plane position="-15 4 0" rotation="0 90 0" width="50" height="8"
-            material="color: #2c3e50; roughness: 0.8"></a-plane>
-        <a-plane position="-14.93 1.5 0" rotation="0 90 0" width="50" height="3"
-            material="color: #1a252f; roughness: 0.7"></a-plane>
-        <a-box position="-14.88 3 0" width="0.15" height="0.2" depth="50"
-            material="color: #e0c97f; metalness: 0.4; roughness: 0.3"></a-box>
-        <a-box position="-14.88 7.5 0" width="0.15" height="0.2" depth="50"
-            material="color: #e0c97f; metalness: 0.4; roughness: 0.3"></a-box>
+        <div class="timeline-item left reveal">
+          <div class="timeline-content">
+            <div class="timeline-card card">
+              <div class="timeline-year-row">
+                <span class="timeline-year">1781</span>
+                <span class="timeline-year-line"></span>
+              </div>
+              <h3 class="timeline-card-title">Основание крепости</h3>
+              <p class="timeline-card-text">Османская империя возвела крепость Анапа на черноморском побережье Кавказа. Крепость стала важнейшим укреплённым пунктом для контроля над регионом и опорой турецкого влияния среди горских народов.</p>
+            </div>
+          </div>
+          <div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
+          <div class="timeline-spacer"></div>
+        </div>
 
-        <a-plane position="15 4 0" rotation="0 -90 0" width="50" height="8"
-            material="color: #2c3e50; roughness: 0.8"></a-plane>
-        <a-plane position="14.93 1.5 0" rotation="0 -90 0" width="50" height="3"
-            material="color: #1a252f; roughness: 0.7"></a-plane>
-        <a-box position="14.88 3 0" width="0.15" height="0.2" depth="50"
-            material="color: #e0c97f; metalness: 0.4; roughness: 0.3"></a-box>
-        <a-box position="14.88 7.5 0" width="0.15" height="0.2" depth="50"
-            material="color: #e0c97f; metalness: 0.4; roughness: 0.3"></a-box>
+        <div class="timeline-item right reveal">
+          <div class="timeline-content">
+            <div class="timeline-card card">
+              <div class="timeline-year-row">
+                <span class="timeline-year">1788</span>
+                <span class="timeline-year-line"></span>
+              </div>
+              <h3 class="timeline-card-title">Первый штурм</h3>
+              <p class="timeline-card-text">Во время русско-турецкой войны 1787–1791 годов войска генерал-аншефа П.&nbsp;А.&nbsp;Текели предприняли попытку взять крепость. Штурм окончился неудачей: мощные укрепления и численный гарнизон не позволили овладеть Анапой.</p>
+            </div>
+          </div>
+          <div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
+          <div class="timeline-spacer"></div>
+        </div>
 
-        <a-plane position="0 4 -25" rotation="0 0 0" width="30" height="8"
-            material="color: #2c3e50; roughness: 0.8"></a-plane>
-        <a-plane position="0 1.5 -24.93" rotation="0 0 0" width="30" height="3"
-            material="color: #1a252f; roughness: 0.7"></a-plane>
+        <div class="timeline-item left reveal">
+          <div class="timeline-content">
+            <div class="timeline-card card">
+              <div class="timeline-year-row">
+                <span class="timeline-year">1791</span>
+                <span class="timeline-year-line"></span>
+              </div>
+              <h3 class="timeline-card-title">Взятие Гудовичем</h3>
+              <p class="timeline-card-text">22&nbsp;июня 1791&nbsp;года генерал И.&nbsp;В.&nbsp;Гудович штурмом взял крепость Анапа. Бой был ожесточённым — потери с обеих сторон были значительны. Однако по Ясскому мирному договору 1792&nbsp;года крепость была возвращена Османской империи.</p>
+            </div>
+          </div>
+          <div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
+          <div class="timeline-spacer"></div>
+        </div>
 
-        <a-plane position="-10 4 25" rotation="0 180 0" width="10" height="8"
-            material="color: #2c3e50; roughness: 0.8"></a-plane>
-        <a-plane position="10 4 25" rotation="0 180 0" width="10" height="8"
-            material="color: #2c3e50; roughness: 0.8"></a-plane>
-        <a-plane position="0 7 25" rotation="0 180 0" width="10" height="2"
-            material="color: #2c3e50; roughness: 0.8"></a-plane>
+        <div class="timeline-item right reveal">
+          <div class="timeline-content">
+            <div class="timeline-card card">
+              <div class="timeline-year-row">
+                <span class="timeline-year">1807–1812</span>
+                <span class="timeline-year-line"></span>
+              </div>
+              <h3 class="timeline-card-title">Война и Бухарестский мир</h3>
+              <p class="timeline-card-text">В ходе русско-турецкой войны 1806–1812 годов Анапа вновь стала объектом боевых действий. Российский флот и сухопутные силы проводили операции в районе крепости. По Бухарестскому мирному договору 1812&nbsp;года крепость осталась за Османской империей.</p>
+            </div>
+          </div>
+          <div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
+          <div class="timeline-spacer"></div>
+        </div>
 
-        <!-- Painting Frames (Left Wall) -->
-        <a-entity position="-14.7 2.8 -20" rotation="0 90 0"
-            auto-frame="url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/After_the_attack._Plevna%2C_1877-1878.jpg/1280px-After_the_attack._Plevna%2C_1877-1878.jpg;
-            title: После атаки. Перевязочный пункт под Плевной;
-            artist: Василий Васильевич Верещагин, 1881;
-            description: <h3>О картине</h3><p><strong>Полное название:</strong> «После атаки. Перевязочный пункт под Плевной»</p><p><strong>Год создания:</strong> 1881 год</p><p><strong>Техника:</strong> Холст, масло</p><p><strong>Размеры:</strong> 183 × 234 см</p><p><strong>Местонахождение:</strong> Государственная Третьяковская галерея, Москва</p><p><strong>Жанр:</strong> Батальная живопись (реалистическое направление)</p><h3>Исторический контекст</h3><p>Картина изображает события <strong>Русско-турецкой войны 1877–1878 годов</strong>. Конкретно — последствия <em>третьего штурма Плевны</em>, предпринятого 30 августа 1877 года.</p>;
-            maxWidth: 5; maxHeight: 3.5">
-        </a-entity>
+        <div class="timeline-item left reveal">
+          <div class="timeline-content">
+            <div class="timeline-card card">
+              <div class="timeline-year-row">
+                <span class="timeline-year">1828</span>
+                <span class="timeline-year-line"></span>
+              </div>
+              <h3 class="timeline-card-title">Окончательное взятие</h3>
+              <p class="timeline-card-text">В русско-турецкую войну 1828–1829 годов эскадра вице-адмирала А.&nbsp;С.&nbsp;Грейга и десант под командованием контр-адмирала А.&nbsp;С.&nbsp;Меншикова осадили Анапу. 12&nbsp;июня 1828&nbsp;года гарнизон капитулировал. По Адрианопольскому мирному договору 1829&nbsp;года Анапа окончательно вошла в состав Российской империи.</p>
+            </div>
+          </div>
+          <div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
+          <div class="timeline-spacer"></div>
+        </div>
 
-        <a-entity position="-14.7 2.8 -12" rotation="0 90 0"
-            auto-frame="url: https://dl.dropboxusercontent.com/scl/fi/7gmbpqdczx2ogdiauwq49/.jpg?rlkey=nklwyvbelb6cdhblpykzro5i9&st=1p3q2bf4&raw=1;
-            title: Памятник Ивану Гудовичу в Анапе;
-            artist: Быков Артём;
-            description: <h3>О памятнике</h3><p><strong>Дата установки:</strong> 2011 год</p><p><strong>Скульптор:</strong> Александр Аполлонов</p><p><strong>Расположение:</strong> Центральная набережная Анапы</p><h3>Генерал-фельдмаршал Иван Васильевич Гудович</h3><p><strong>Годы жизни:</strong> 1741–1820</p><p>Иван Васильевич Гудович — выдающийся русский военачальник эпохи Екатерины II и Александра I.</p><h3>Взятие Анапы (1791)</h3><p>Главным подвигом Гудовича стал <strong>штурм турецкой крепости Анапа 22 июня 1791 года</strong>.</p>;
-            maxWidth: 4; maxHeight: 3.5">
-        </a-entity>
+        <div class="timeline-item right reveal">
+          <div class="timeline-content">
+            <div class="timeline-card card">
+              <div class="timeline-year-row">
+                <span class="timeline-year">Наследие</span>
+                <span class="timeline-year-line"></span>
+              </div>
+              <h3 class="timeline-card-title">Крепость сегодня</h3>
+              <p class="timeline-card-text">Русские ворота — единственный сохранившийся фрагмент крепости — являются памятником архитектуры и главным историческим символом Анапы. Они были отреставрированы и имеют статус объекта культурного наследия.</p>
+            </div>
+          </div>
+          <div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
+          <div class="timeline-spacer"></div>
+        </div>
 
-        <a-entity position="-14.7 2.8 -4" rotation="0 90 0"
-            auto-frame="url: https://dl.dropboxusercontent.com/scl/fi/zvw5w9r8ufg04m3hf34x9/main.jpg?rlkey=6fvvs234gr67rgcsutvcelyjo&st=5atybb6s&raw=1;
-            title: Триумфальная арка в Анапе;
-            artist: Быков Артём;
-            description: <h3>О Триумфальной арке</h3><p><strong>Расположение:</strong> Центральная набережная Анапы</p><p><strong>Год установки:</strong> 2015</p><p><strong>Высота:</strong> около 8 метров</p><h3>Символическое значение</h3><p>Триумфальные арки издревле служили символом <strong>победы, славы и торжества</strong>.</p>;
-            maxWidth: 4.5; maxHeight: 3.5">
-        </a-entity>
+      </div>
+    </div>
+  </section>
 
-        <a-entity position="-14.7 2.8 4" rotation="0 90 0"
-            auto-frame="url: https://dl.dropboxusercontent.com/scl/fi/0ufkhwqw4s5ghbo3iuedf/.jpg?rlkey=4p8nvcj2f1dlohe1y2vgc3llo&st=5qjnz9vz&raw=1;
-            title: Русские ворота в Анапе;
-            artist: Быков Артём;
-            description: <h3>Историческая справка</h3><p><strong>Год постройки:</strong> 1783</p><p><strong>Статус:</strong> Памятник архитектуры федерального значения</p><h3>Название «Русские ворота»</h3><p>После взятия Анапы русскими войсками <strong>12 июня 1828 года</strong> ворота были переименованы.</p>;
-            maxWidth: 5; maxHeight: 3.5">
-        </a-entity>
+  <div class="divider"></div>
 
-        <a-entity position="-14.7 2.8 12" rotation="0 90 0"
-            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
-        </a-entity>
+  <section class="section section-base" id="controls">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <span class="section-label">Навигация</span>
+        <h2 class="section-title">Управление <span class="text-gradient">музеем</span></h2>
+        <p class="section-desc">Выберите удобный для вас способ навигации</p>
+      </div>
 
-        <a-entity position="-14.7 2.8 20" rotation="0 90 0"
-            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
-        </a-entity>
+      <div class="controls-grid">
+        <div class="card control-card reveal">
+          <div class="control-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59"/></svg>
+          </div>
+          <h3 class="control-title">Мышь</h3>
+          <p class="control-desc">Зажмите левую кнопку мыши и перемещайте для обзора. Колёсико — приближение и отдаление.</p>
+        </div>
 
-        <!-- Painting Frames (Right Wall) -->
-        <a-entity position="14.7 2.8 -20" rotation="0 -90 0"
-            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
-        </a-entity>
-        <a-entity position="14.7 2.8 -12" rotation="0 -90 0"
-            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4.5; maxHeight: 3.5">
-        </a-entity>
-        <a-entity position="14.7 2.8 -4" rotation="0 -90 0"
-            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
-        </a-entity>
-        <a-entity position="14.7 2.8 4" rotation="0 -90 0"
-            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4.5; maxHeight: 3.5">
-        </a-entity>
-        <a-entity position="14.7 2.8 12" rotation="0 -90 0"
-            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 4; maxHeight: 3.5">
-        </a-entity>
-        <a-entity position="14.7 2.8 20" rotation="0 -90 0"
-            auto-frame="url: ; title: Свободный слот; artist: Ожидает картину; maxWidth: 5; maxHeight: 3.5">
-        </a-entity>
+        <div class="card control-card reveal">
+          <div class="control-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"/></svg>
+          </div>
+          <h3 class="control-title">Клавиатура</h3>
+          <p class="control-desc">W A S D или стрелки — перемещение. Пробел — подъём, Shift — спуск.</p>
+        </div>
 
-        <!-- Benches -->
-        <a-entity class="bench" position="-5 0 -10">
-            <a-box width="3" height="0.6" depth="0.8" position="0 0.5 0" material="color: #5c3a21; roughness: 0.6"></a-box>
-            <a-box width="0.2" height="0.5" depth="0.6" position="-1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
-            <a-box width="0.2" height="0.5" depth="0.6" position="1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
-        </a-entity>
-        <a-entity class="bench" position="5 0 -10">
-            <a-box width="3" height="0.6" depth="0.8" position="0 0.5 0" material="color: #5c3a21; roughness: 0.6"></a-box>
-            <a-box width="0.2" height="0.5" depth="0.6" position="-1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
-            <a-box width="0.2" height="0.5" depth="0.6" position="1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
-        </a-entity>
-        <a-entity class="bench" position="0 0 5" rotation="0 90 0">
-            <a-box width="3" height="0.6" depth="0.8" position="0 0.5 0" material="color: #5c3a21; roughness: 0.6"></a-box>
-            <a-box width="0.2" height="0.5" depth="0.6" position="-1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
-            <a-box width="0.2" height="0.5" depth="0.6" position="1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
-        </a-entity>
-        <a-entity class="bench" position="0 0 15" rotation="0 90 0">
-            <a-box width="3" height="0.6" depth="0.8" position="0 0.5 0" material="color: #5c3a21; roughness: 0.6"></a-box>
-            <a-box width="0.2" height="0.5" depth="0.6" position="-1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
-            <a-box width="0.2" height="0.5" depth="0.6" position="1.3 0.25 0" material="color: #4a2c17; roughness: 0.7"></a-box>
-        </a-entity>
+        <div class="card control-card reveal">
+          <div class="control-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/></svg>
+          </div>
+          <h3 class="control-title">Смартфон</h3>
+          <p class="control-desc">Проводите пальцем для осмотра. Двойное касание — взаимодействие с экспонатом.</p>
+        </div>
 
-        <!-- Decorative pedestals -->
-        <a-entity position="0 0 -22">
-            <a-box width="1" height="1.2" depth="1" position="0 0.6 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-box>
-            <a-cylinder radius="0.35" height="0.8" position="0 1.6 0" material="color: #c0392b; roughness: 0.3; metalness: 0.2"></a-cylinder>
-            <a-torus radius="0.35" radius-tubular="0.03" position="0 2.0 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-torus>
-        </a-entity>
-        <a-entity position="-6 0 -22">
-            <a-box width="1" height="1.2" depth="1" position="0 0.6 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-box>
-            <a-sphere radius="0.4" position="0 1.6 0" material="color: #2c3e80; roughness: 0.2; metalness: 0.4"></a-sphere>
-        </a-entity>
-        <a-entity position="6 0 -22">
-            <a-box width="1" height="1.2" depth="1" position="0 0.6 0" material="color: #d4c5a9; roughness: 0.4; metalness: 0.1"></a-box>
-            <a-sphere radius="0.4" position="0 1.6 0" material="color: #2c3e80; roughness: 0.2; metalness: 0.4"></a-sphere>
-        </a-entity>
+        <div class="card control-card reveal">
+          <div class="control-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5V18M15 7.5V18M3 16.811V8.69c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 010 1.954l-7.108 4.061A1.125 1.125 0 013 16.811z"/></svg>
+          </div>
+          <h3 class="control-title">VR-шлем</h3>
+          <p class="control-desc">Наденьте шлем и используйте контроллеры. Наведите луч на объект и нажмите триггер.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-        <!-- Museum Title -->
-        <a-entity position="0 6.5 -24.8">
-            <a-text value="ВИРТУАЛЬНЫЙ МУЗЕЙ" align="center" color="#e0c97f" width="12" font="mozillavr" anchor="center"></a-text>
-            <a-text value="КРЕПОСТЬ АНАПА" align="center" color="#aaa" width="6" position="0 -0.5 0" font="mozillavr"></a-text>
-        </a-entity>
+  <div class="divider"></div>
 
-        <!-- Lighting -->
-        <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
-        <a-light type="hemisphere" color="#fff" ground-color="#445" intensity="0.5"></a-light>
-        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 -20" decay="1.5" cast-shadow="true"></a-light>
-        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 -10" decay="1.5"></a-light>
-        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 0" decay="1.5"></a-light>
-        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 10" decay="1.5"></a-light>
-        <a-light type="point" color="#FFF5E0" intensity="2.0" distance="25" position="0 7.5 20" decay="1.5"></a-light>
+  <section class="section section-alt vr-section" id="vr">
+    <div class="vr-glow"></div>
+    <div class="section-inner" style="position:relative;z-index:1;">
+      <div class="reveal">
+        <div class="card vr-card">
+          <div class="vr-corner tl"></div>
+          <div class="vr-corner tr"></div>
+          <div class="vr-corner bl"></div>
+          <div class="vr-corner br"></div>
 
-        <!-- Ceiling light fixtures -->
-        <a-entity position="0 7.7 -20">
-            <a-cylinder radius="0.3" height="0.1" material="color: #e0c97f; metalness: 0.6; roughness: 0.3"></a-cylinder>
-            <a-sphere radius="0.25" position="0 -0.2 0" material="color: #FFFDE7; emissive: #FFFDE7; emissiveIntensity: 0.5; opacity: 0.9"></a-sphere>
-        </a-entity>
-        <a-entity position="0 7.7 -10">
-            <a-cylinder radius="0.3" height="0.1" material="color: #e0c97f; metalness: 0.6; roughness: 0.3"></a-cylinder>
-            <a-sphere radius="0.25" position="0 -0.2 0" material="color: #FFFDE7; emissive: #FFFDE7; emissiveIntensity: 0.5; opacity: 0.9"></a-sphere>
-        </a-entity>
-        <a-entity position="0 7.7 0">
-            <a-cylinder radius="0.3" height="0.1" material="color: #e0c97f; metalness: 0.6; roughness: 0.3"></a-cylinder>
-            <a-sphere radius="0.25" position="0 -0.2 0" material="color: #FFFDE7; emissive: #FFFDE7; emissiveIntensity: 0.5; opacity: 0.9"></a-sphere>
-        </a-entity>
-        <a-entity position="0 7.7 10">
-            <a-cylinder radius="0.3" height="0.1" material="color: #e0c97f; metalness: 0.6; roughness: 0.3"></a-cylinder>
-            <a-sphere radius="0.25" position="0 -0.2 0" material="color: #FFFDE7; emissive: #FFFDE7; emissiveIntensity: 0.5; opacity: 0.9"></a-sphere>
-        </a-entity>
-        <a-entity position="0 7.7 20">
-            <a-cylinder radius="0.3" height="0.1" material="color: #e0c97f; metalness: 0.6; roughness: 0.3"></a-cylinder>
-            <a-sphere radius="0.25" position="0 -0.2 0" material="color: #FFFDE7; emissive: #FFFDE7; emissiveIntensity: 0.5; opacity: 0.9"></a-sphere>
-        </a-entity>
+          <div class="vr-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/></svg>
+          </div>
 
-        <!-- Entrance Arch -->
-        <a-box position="-5.1 3 25" width="0.3" height="6" depth="1" material="color: #d4c5a9; roughness: 0.4"></a-box>
-        <a-box position="5.1 3 25" width="0.3" height="6" depth="1" material="color: #d4c5a9; roughness: 0.4"></a-box>
-        <a-box position="0 6.1 25" width="10.5" height="0.4" depth="1" material="color: #d4c5a9; roughness: 0.4"></a-box>
-        <a-text value="ВХОД" position="0 6.5 24.4" align="center" color="#e0c97f" width="6"></a-text>
+          <h2 class="vr-title">Готовы к <span class="text-gradient">путешествию?</span></h2>
+          <p class="vr-desc">Перенеситесь в XVIII–XIX века и исследуйте крепость Анапа в полном погружении. Доступно на&nbsp;всех устройствах.</p>
 
-        <!-- Rope Barriers -->
-        <a-entity class="rope-post" position="-13 0 -16">
-            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
-            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
-        </a-entity>
-        <a-entity class="rope-post" position="-13 0 -8">
-            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
-            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
-        </a-entity>
-        <a-entity class="rope-post" position="-13 0 0">
-            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
-            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
-        </a-entity>
-        <a-entity class="rope-post" position="-13 0 8">
-            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
-            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
-        </a-entity>
-        <a-entity class="rope-post" position="-13 0 16">
-            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
-            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
-        </a-entity>
-        <a-entity class="rope-post" position="-13 0 24">
-            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
-            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
-        </a-entity>
+          <a href="VR2.html" target="_blank" rel="noopener noreferrer" class="vr-btn">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+            <span>Открыть VR музей</span>
+            <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
 
-        <a-entity class="rope-post" position="13 0 -16">
-            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
-            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
-        </a-entity>
-        <a-entity class="rope-post" position="13 0 -8">
-            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
-            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
-        </a-entity>
-        <a-entity class="rope-post" position="13 0 0">
-            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
-            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
-        </a-entity>
-        <a-entity class="rope-post" position="13 0 8">
-            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
-            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
-        </a-entity>
-        <a-entity class="rope-post" position="13 0 16">
-            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
-            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
-        </a-entity>
-        <a-entity class="rope-post" position="13 0 24">
-            <a-cylinder radius="0.08" height="1.2" position="0 0.6 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-cylinder>
-            <a-sphere radius="0.12" position="0 1.2 0" material="color: #e0c97f; metalness: 0.7; roughness: 0.2"></a-sphere>
-        </a-entity>
+          <p class="vr-hint">Рекомендуемые браузеры: Chrome, Firefox, Edge</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-        <!-- Rope connectors -->
-        <a-cylinder position="-13 1.1 -12" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="-13 1.1 -4" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="-13 1.1 4" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="-13 1.1 12" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="-13 1.1 20" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+  <div class="divider"></div>
 
-        <a-cylinder position="13 1.1 -12" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="13 1.1 -4" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="13 1.1 4" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="13 1.1 12" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
-        <a-cylinder position="13 1.1 20" rotation="90 0 0" radius="0.02" height="8" material="color: #8B0000; roughness: 0.8"></a-cylinder>
+  <section class="section section-base" id="authors">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <span class="section-label">Команда проекта</span>
+        <h2 class="section-title">Авторы <span class="text-gradient">проекта</span></h2>
+      </div>
 
-        <!-- Dust particles -->
-        <a-entity dust-particles></a-entity>
+      <div class="authors-grid">
+        <a href="https://t.me/geniyzizni" target="_blank" rel="noopener noreferrer" class="card author-card reveal">
+          <div class="author-tg-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          </div>
+          <p class="author-name">Быков Артём Денисович</p>
+          <p class="author-role">Ученик 10 инженерного класса</p>
+          <div class="author-hint">
+            <span>Связаться</span>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </div>
+        </a>
 
-        <!-- Camera / Player -->
-        <a-entity id="vr-rig" position="0 0 22" rotation="0 180 0">
-            <a-entity id="vr-camera" camera="near: 0.05; far: 200"
-                look-controls="pointerLockEnabled: true"
-                wasd-controls="acceleration: 30"
-                position="0 1.7 0">
-                <a-cursor id="vr-cursor" fuse="false" raycaster="objects: .clickable; far: 20"
-                    color="#e0c97f" scale="1 1 1"
-                    geometry="primitive: ring; radiusInner: 0.005; radiusOuter: 0.01"
-                    material="shader: flat; opacity: 0.8"
-                    animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
-                    animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1"
-                    animation__mouseenter="property: scale; startEvents: mouseenter; easing: easeInCubic; dur: 500; to: 1.5 1.5 1.5"
-                    animation__mouseleave="property: scale; startEvents: mouseleave; easing: easeInCubic; dur: 500; to: 1 1 1">
-                </a-cursor>
-            </a-entity>
-        </a-entity>
-    </a-scene>
-</div>
+        <a href="https://t.me/GUBKI67city_boy" target="_blank" rel="noopener noreferrer" class="card author-card reveal">
+          <div class="author-tg-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          </div>
+          <p class="author-name">Кудрявцев Владимир Олегович</p>
+          <p class="author-role">Ученик 10 инженерного класса</p>
+          <div class="author-hint">
+            <span>Связаться</span>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
 
-<!-- ═══════════ JAVASCRIPT ═══════════ -->
-<script>
-// ══════════ LANDING PAGE SCRIPTS ══════════
-const navbar = document.getElementById('navbar');
-window.addEventListener('scroll', function() {
-    navbar.classList.toggle('scrolled', window.scrollY > 60);
-}, { passive: true });
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo">А</div>
+        <span class="footer-brand-text">VR Музей — Крепость Анапа</span>
+      </div>
+      <p class="footer-copy">Проект учеников 10 инженерного класса · 2025</p>
+      <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="footer-gh">
+        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        <span>GitHub</span>
+      </a>
+    </div>
+  </footer>
 
-const burger = document.getElementById('burger');
-const mobileMenu = document.getElementById('mobileMenu');
-const burgerIcon = '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>';
-const closeIcon = '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
-let menuOpen = false;
-burger.addEventListener('click', function() {
-    menuOpen = !menuOpen;
-    mobileMenu.classList.toggle('open', menuOpen);
-    burger.innerHTML = menuOpen ? closeIcon : burgerIcon;
-});
-mobileMenu.querySelectorAll('a').forEach(function(link) {
-    link.addEventListener('click', function() {
+  <script>
+    /* Navbar scroll effect */
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', function() {
+      navbar.classList.toggle('scrolled', window.scrollY > 60);
+    }, { passive: true });
+
+    /* Mobile menu */
+    const burger = document.getElementById('burger');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const burgerIcon = '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>';
+    const closeIcon = '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
+    let menuOpen = false;
+
+    burger.addEventListener('click', function() {
+      menuOpen = !menuOpen;
+      mobileMenu.classList.toggle('open', menuOpen);
+      burger.innerHTML = menuOpen ? closeIcon : burgerIcon;
+    });
+
+    mobileMenu.querySelectorAll('a').forEach(function(link) {
+      link.addEventListener('click', function() {
         menuOpen = false;
         mobileMenu.classList.remove('open');
         burger.innerHTML = burgerIcon;
+      });
     });
-});
 
-const revealElements = document.querySelectorAll('.reveal');
-const revealObserver = new IntersectionObserver(function(entries) {
-    entries.forEach(function(entry) {
+    /* Reveal on scroll (IntersectionObserver) */
+    const revealElements = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
         if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-            revealObserver.unobserve(entry.target);
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
         }
+      });
+    }, { threshold: 0.15 });
+
+    revealElements.forEach(function(el) {
+      revealObserver.observe(el);
     });
-}, { threshold: 0.15 });
-revealElements.forEach(function(el) {
-    revealObserver.observe(el);
-});
+  </script>
 
-// ══════════ VR MUSEUM SCRIPTS ══════════
-const vrOverlay = document.getElementById('vr-museum-overlay');
-const vrLoadingScreen = document.getElementById('vr-loading-screen');
-const vrEnterBtn = document.getElementById('vr-enter-btn');
-const vrScene = document.getElementById('vr-scene');
-const vrBackBtn = document.getElementById('vr-back-btn');
-const vrCrosshair = document.getElementById('vr-crosshair');
-const vrInfoPanel = document.getElementById('vr-info-panel');
-
-function openVRMuseum() {
-    document.body.classList.add('vr-active');
-    vrOverlay.classList.add('active');
-    vrLoadingScreen.style.display = 'flex';
-    vrBackBtn.style.display = 'none';
-    
-    setTimeout(() => {
-        vrEnterBtn.style.display = 'block';
-        vrLoadingScreen.querySelector('.vr-loader').style.display = 'none';
-        vrLoadingScreen.querySelector('h1').textContent = 'VR МУЗЕЙ ГОТОВ';
-        vrLoadingScreen.querySelector('p').textContent = 'Нажмите кнопку для входа';
-    }, 2000);
-}
-
-function enterVRMuseum() {
-    vrLoadingScreen.classList.add('fade-out');
-    setTimeout(() => {
-        vrLoadingScreen.style.display = 'none';
-        vrBackBtn.style.display = 'flex';
-        vrCrosshair.style.display = 'block';
-        vrInfoPanel.style.display = 'block';
-        
-        const canvas = vrScene.canvas;
-        if (canvas) {
-            canvas.addEventListener('click', () => {
-                canvas.requestPointerLock();
-            });
-        }
-    }, 1000);
-}
-
-function closeVRMuseum() {
-    document.body.classList.remove('vr-active');
-    vrOverlay.classList.remove('active');
-    vrLoadingScreen.classList.remove('fade-out');
-    vrLoadingScreen.style.display = 'flex';
-    vrLoadingScreen.querySelector('.vr-loader').style.display = 'block';
-    vrLoadingScreen.querySelector('h1').textContent = '🏛️ VR МУЗЕЙ';
-    vrLoadingScreen.querySelector('p').textContent = 'Загрузка виртуальной галереи...';
-    vrEnterBtn.style.display = 'none';
-    vrBackBtn.style.display = 'none';
-    vrCrosshair.style.display = 'none';
-    vrInfoPanel.style.display = 'none';
-    
-    if (document.pointerLockElement) {
-        document.exitPointerLock();
-    }
-}
-
-function showVRPaintingInfo(title, artist, desc) {
-    document.getElementById('vr-m-title').innerText = title || "Без названия";
-    document.getElementById('vr-m-artist').innerText = artist || "Неизвестный автор";
-    document.getElementById('vr-m-desc').innerHTML = desc || "Информация скоро появится.";
-    const overlay = document.getElementById('vr-modal-overlay');
-    overlay.style.display = 'flex';
-    requestAnimationFrame(() => {
-        overlay.classList.add('active');
-    });
-    if (document.pointerLockElement) {
-        document.exitPointerLock();
-    }
-}
-
-function closeVRModal(e) {
-    if (e.target.id === 'vr-modal-overlay') {
-        closeVRModalDirect();
-    }
-}
-
-function closeVRModalDirect() {
-    const overlay = document.getElementById('vr-modal-overlay');
-    overlay.classList.remove('active');
-    setTimeout(() => {
-        overlay.style.display = 'none';
-    }, 300);
-}
-
-// Register auto-frame component
-AFRAME.registerComponent('auto-frame', {
-    schema: {
-        url: { type: 'string', default: '' },
-        title: { type: 'string', default: '' },
-        artist: { type: 'string', default: '' },
-        description: { type: 'string', default: '' },
-        maxWidth: { type: 'number', default: 4.0 },
-        maxHeight: { type: 'number', default: 3.5 },
-        frameDepth: { type: 'number', default: 0.18 }
-    },
-    init: function () {
-        const data = this.data;
-        if (data.url && data.url.length > 0) {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-                const aspect = img.naturalWidth / img.naturalHeight;
-                this.buildFrame(aspect, data, true, img);
-            };
-            img.onerror = () => {
-                this.buildFrame(4/3, data, false, null);
-            };
-            img.src = data.url;
-        } else {
-            this.buildFrame(4/3, data, false, null);
-        }
-    },
-    buildFrame: function (aspect, data, hasImage, imgElement) {
-        const el = this.el;
-        const maxW = data.maxWidth;
-        const maxH = data.maxHeight;
-        const fd = data.frameDepth;
-        
-        let canvasW, canvasH;
-        if (aspect >= 1) {
-            canvasW = Math.min(maxW, maxH * aspect);
-            canvasH = canvasW / aspect;
-            if (canvasH > maxH) { canvasH = maxH; canvasW = canvasH * aspect; }
-        } else {
-            canvasH = Math.min(maxH, maxW / aspect);
-            canvasW = canvasH * aspect;
-            if (canvasW > maxW) { canvasW = maxW; canvasH = canvasW / aspect; }
-        }
-        
-        const border = 0.25;
-        const frameW = canvasW + border * 2;
-        const frameH = canvasH + border * 2;
-        
-        const outer = document.createElement('a-box');
-        outer.setAttribute('width', frameW + 0.15);
-        outer.setAttribute('height', frameH + 0.15);
-        outer.setAttribute('depth', fd);
-        outer.setAttribute('position', '0 0 0');
-        el.appendChild(outer);
-        outer.addEventListener('loaded', () => {
-            const mesh = outer.getObject3D('mesh');
-            if (mesh) mesh.material = new THREE.MeshStandardMaterial({ color: '#6B4F1D', roughness: 0.25, metalness: 0.65 });
-        });
-        
-        const mid = document.createElement('a-box');
-        mid.setAttribute('width', frameW + 0.05);
-        mid.setAttribute('height', frameH + 0.05);
-        mid.setAttribute('depth', fd * 0.6);
-        mid.setAttribute('position', '0 0 ' + (fd * 0.35));
-        el.appendChild(mid);
-        mid.addEventListener('loaded', () => {
-            const mesh = mid.getObject3D('mesh');
-            if (mesh) mesh.material = new THREE.MeshStandardMaterial({ color: '#DAA520', roughness: 0.35, metalness: 0.55 });
-        });
-        
-        const inner = document.createElement('a-box');
-        inner.setAttribute('width', frameW - 0.05);
-        inner.setAttribute('height', frameH - 0.05);
-        inner.setAttribute('depth', fd * 0.4);
-        inner.setAttribute('position', '0 0 ' + (fd * 0.55));
-        el.appendChild(inner);
-        inner.addEventListener('loaded', () => {
-            const mesh = inner.getObject3D('mesh');
-            if (mesh) mesh.material = new THREE.MeshStandardMaterial({ color: '#8B6914', roughness: 0.25, metalness: 0.6 });
-        });
-        
-        const lip = document.createElement('a-box');
-        lip.setAttribute('width', canvasW + 0.08);
-        lip.setAttribute('height', canvasH + 0.08);
-        lip.setAttribute('depth', fd * 0.25);
-        lip.setAttribute('position', '0 0 ' + (fd * 0.7));
-        el.appendChild(lip);
-        lip.addEventListener('loaded', () => {
-            const mesh = lip.getObject3D('mesh');
-            if (mesh) mesh.material = new THREE.MeshStandardMaterial({ color: '#B8860B', roughness: 0.3, metalness: 0.7 });
-        });
-        
-        const canvasZ = fd * 0.95;
-        const canvas = document.createElement('a-plane');
-        canvas.setAttribute('width', canvasW);
-        canvas.setAttribute('height', canvasH);
-        canvas.setAttribute('position', '0 0 ' + canvasZ);
-        canvas.setAttribute('class', 'clickable');
-        
-        if (hasImage) {
-            canvas.addEventListener('click', () => {
-                showVRPaintingInfo(data.title, data.artist, data.description);
-            });
-            canvas.addEventListener('mouseenter', () => {
-                document.body.style.cursor = 'pointer';
-                if (light) light.setAttribute('intensity', '3.5');
-            });
-            canvas.addEventListener('mouseleave', () => {
-                document.body.style.cursor = 'default';
-                if (light) light.setAttribute('intensity', '2.5');
-            });
-        }
-        
-        if (hasImage && imgElement) {
-            const tex = new THREE.Texture(imgElement);
-            tex.colorSpace = THREE.SRGBColorSpace;
-            tex.minFilter = THREE.LinearMipmapLinearFilter;
-            tex.magFilter = THREE.LinearFilter;
-            tex.generateMipmaps = true;
-            tex.anisotropy = 16;
-            tex.needsUpdate = true;
-            canvas.addEventListener('loaded', () => {
-                const mesh = canvas.getObject3D('mesh');
-                if (mesh) {
-                    mesh.material = new THREE.MeshBasicMaterial({
-                        map: tex,
-                        toneMapped: false,
-                        side: THREE.DoubleSide
-                    });
-                }
-            });
-        } else {
-            canvas.setAttribute('material', 'color: #050505; roughness: 0.95');
-        }
-        el.appendChild(canvas);
-        
-        const light = document.createElement('a-light');
-        light.setAttribute('type', 'spot');
-        light.setAttribute('color', '#FFF8E7');
-        light.setAttribute('intensity', '2.5');
-        light.setAttribute('distance', '8');
-        light.setAttribute('angle', '50');
-        light.setAttribute('penumbra', '0.4');
-        light.setAttribute('position', '0 ' + (frameH/2 + 2) + ' 3');
-        light.setAttribute('target', canvas);
-        el.appendChild(light);
-        
-        if (data.title || data.artist) {
-            const labelW = Math.max(2.0, canvasW * 0.8);
-            const labelH = 0.6;
-            const labelGroup = document.createElement('a-entity');
-            labelGroup.setAttribute('position', '0 ' + (-(frameH/2) - 0.5) + ' ' + (fd * 0.5));
-            
-            const labelBg = document.createElement('a-box');
-            labelBg.setAttribute('width', labelW);
-            labelBg.setAttribute('height', labelH);
-            labelBg.setAttribute('depth', 0.04);
-            labelBg.setAttribute('material', 'color: #B8860B; roughness: 0.3; metalness: 0.8');
-            labelGroup.appendChild(labelBg);
-            
-            const labelFace = document.createElement('a-plane');
-            labelFace.setAttribute('width', labelW - 0.05);
-            labelFace.setAttribute('height', labelH - 0.05);
-            labelFace.setAttribute('position', '0 0 0.025');
-            labelFace.setAttribute('material', 'color: #050505; roughness: 0.8');
-            labelGroup.appendChild(labelFace);
-            
-            if (data.title) {
-                const titleText = document.createElement('a-text');
-                titleText.setAttribute('value', data.title);
-                titleText.setAttribute('align', 'center');
-                titleText.setAttribute('color', '#ffffff');
-                titleText.setAttribute('width', labelW * 0.9);
-                titleText.setAttribute('wrap-count', '25');
-                titleText.setAttribute('position', '0 0.1 0.03');
-                titleText.setAttribute('font', 'https://cdn.aframe.io/fonts/Exo2Bold.fnt');
-                labelGroup.appendChild(titleText);
-            }
-            if (data.artist) {
-                const artistText = document.createElement('a-text');
-                artistText.setAttribute('value', data.artist);
-                artistText.setAttribute('align', 'center');
-                artistText.setAttribute('color', '#DAA520');
-                artistText.setAttribute('width', labelW * 0.9);
-                artistText.setAttribute('wrap-count', '30');
-                artistText.setAttribute('position', '0 -0.12 0.03');
-                artistText.setAttribute('font', 'https://cdn.aframe.io/fonts/Exo2SemiBold.fnt');
-                labelGroup.appendChild(artistText);
-            }
-            el.appendChild(labelGroup);
-        }
-        
-        const cornerZ = fd * 0.85;
-        const corners = [
-            { x: -(frameW/2 - 0.05), y: (frameH/2 - 0.05) },
-            { x: (frameW/2 - 0.05), y: (frameH/2 - 0.05) },
-            { x: -(frameW/2 - 0.05), y: -(frameH/2 - 0.05) },
-            { x: (frameW/2 - 0.05), y: -(frameH/2 - 0.05) }
-        ];
-        corners.forEach(c => {
-            const orn = document.createElement('a-sphere');
-            orn.setAttribute('radius', 0.07);
-            orn.setAttribute('position', c.x + ' ' + c.y + ' ' + cornerZ);
-            orn.setAttribute('material', 'color: #DAA520; metalness: 0.8; roughness: 0.15');
-            el.appendChild(orn);
-        });
-    }
-});
-
-// Register dust-particles component
-AFRAME.registerComponent('dust-particles', {
-    init: function () {
-        for (let i = 0; i < 40; i++) {
-            const particle = document.createElement('a-sphere');
-            particle.setAttribute('radius', Math.random() * 0.02 + 0.005);
-            particle.setAttribute('position', {
-                x: (Math.random() - 0.5) * 28,
-                y: Math.random() * 7 + 0.5,
-                z: (Math.random() - 0.5) * 48
-            });
-            particle.setAttribute('material', {
-                color: '#FFF8E7',
-                opacity: Math.random() * 0.25 + 0.08,
-                transparent: true
-            });
-            particle.setAttribute('animation', {
-                property: 'position.y',
-                dir: 'alternate',
-                dur: Math.random() * 6000 + 3000,
-                easing: 'easeInOutSine',
-                loop: true,
-                to: Math.random() * 7 + 0.5
-            });
-            this.el.appendChild(particle);
-        }
-    }
-});
-
-// VR Scene renderer boost
-vrScene.addEventListener('loaded', () => {
-    const renderer = vrScene.renderer;
-    if (renderer) {
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.2;
-    }
-});
-</script>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>
-
