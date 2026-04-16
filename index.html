@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VR Музей «Крепость Анапа» — Виртуальная экскурсия</title>
+  <meta name="description" content="Погрузитесь в историю русско-турецких войн и исследуйте крепость Анапа в виртуальной реальности">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════ Reset & Base ══════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy-950: #080d1a;
+      --navy-900: #0e1629;
+      --navy-800: #141e38;
+      --navy-700: #1c2a4a;
+      --copper: #c07840;
+      --copper-light: #e0a878;
+      --copper-bright: #f0c8a0;
+      --ivory: #f8f4ef;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--navy-950);
+      color: var(--slate-300);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    ::selection { background: rgba(192,120,64,0.35); color: var(--ivory); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--navy-900); }
+    ::-webkit-scrollbar-thumb { background: var(--copper); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--copper-light); }
+    a { text-decoration: none; color: inherit; }
+    img { max-width: 100%; display: block; }
+    button { border: none; background: none; cursor: pointer; font-family: inherit; }
+
+    /* ══════════ Typography ══════════ */
+    .font-display { font-family: 'Playfair Display', serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* ══════════ Keyframes ══════════ */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(35px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(192,120,64,0.25); }
+      50% { box-shadow: 0 0 45px rgba(192,120,64,0.55); }
+    }
+    @keyframes gentlePulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(6px); }
+    }
+    @keyframes revealIn {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ══════════ Navbar ══════════ */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 20px 0;
+      transition: all 0.5s ease;
+    }
+    .navbar.scrolled {
+      background: rgba(8,13,26,0.85);
+      backdrop-filter: blur(24px);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+      padding: 12px 0;
+    }
+    .nav-inner {
+      max-width: 1280px; margin: 0 auto; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .nav-logo-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--copper), var(--copper-light));
+      display: flex; align-items: center; justify-content: center;
+      color: var(--navy-950); font-weight: 700; font-family: 'Playfair Display', serif;
+      font-size: 18px; box-shadow: 0 4px 15px rgba(192,120,64,0.3);
+      transition: box-shadow 0.3s;
+    }
+    .nav-logo:hover .nav-logo-icon { box-shadow: 0 4px 25px rgba(192,120,64,0.5); }
+    .nav-logo-text {
+      color: var(--copper-light); font-family: 'Playfair Display', serif;
+      font-size: 18px; letter-spacing: 0.05em;
+    }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a {
+      font-size: 13px; color: var(--slate-400); letter-spacing: 0.15em;
+      text-transform: uppercase; transition: color 0.3s;
+    }
+    .nav-links a:hover { color: var(--copper-light); }
+    .nav-burger {
+      display: none; color: var(--copper-light); padding: 8px;
+    }
+    .nav-burger svg { width: 24px; height: 24px; }
+    .nav-mobile {
+      display: none; background: rgba(8,13,26,0.95); backdrop-filter: blur(24px);
+      border-top: 1px solid rgba(192,120,64,0.2); padding: 16px 24px;
+    }
+    .nav-mobile.open { display: block; }
+    .nav-mobile a {
+      display: block; color: var(--slate-300); padding: 12px 0;
+      letter-spacing: 0.08em; transition: color 0.3s;
+    }
+    .nav-mobile a:hover { color: var(--copper-light); }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-burger { display: block; }
+      .nav-logo-text { display: none; }
+    }
+
+    /* ══════════ Hero ══════════ */
+    .hero {
+      position: relative; min-height: 100vh; display: flex;
+      align-items: center; justify-content: center; overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 30%, rgba(192,120,64,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(40,70,140,0.08) 0%, transparent 60%),
+        linear-gradient(180deg, #080d1a 0%, #0e1629 40%, #141e38 70%, #0e1629 100%);
+    }
+    .hero-orbs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .hero-orb {
+      position: absolute; border-radius: 50%; filter: blur(60px);
+      animation: float 6s ease-in-out infinite;
+    }
+    .hero-orb-1 { top: 96px; left: 10%; width: 320px; height: 320px; background: rgba(192,120,64,0.05); }
+    .hero-orb-2 { bottom: 96px; right: 8%; width: 384px; height: 384px; background: rgba(40,70,140,0.04); animation-delay: 3s; }
+    .hero-ring {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      border-radius: 50%; border: 1px solid rgba(192,120,64,0.05);
+    }
+    .hero-ring-1 { width: 550px; height: 550px; }
+    .hero-ring-2 { width: 780px; height: 780px; border-color: rgba(192,120,64,0.03); }
+
+    .hero-content {
+      position: relative; z-index: 10; text-align: center;
+      padding: 0 24px; max-width: 960px; margin: 0 auto;
+    }
+
+    /* Badge */
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 20px; border-radius: 9999px;
+      border: 1px solid rgba(192,120,64,0.25);
+      background: rgba(192,120,64,0.05); margin-bottom: 32px;
+      opacity: 0; animation: fadeInUp 0.8s ease-out forwards;
+    }
+    .hero-badge-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--copper); animation: gentlePulse 3s ease-in-out infinite;
+    }
+    .hero-badge-text {
+      color: var(--copper-light); font-size: 13px;
+      letter-spacing: 0.2em; text-transform: uppercase; font-weight: 300;
+    }
+
+    /* Title */
+    .hero-title {
+      font-family: 'Playfair Display', serif; font-weight: 700;
+      line-height: 1.1; margin-bottom: 24px;
+      opacity: 0; animation: fadeInUp 0.8s ease-out 0.2s forwards;
+    }
+    .hero-title-top {
+      display: block; font-size: clamp(3rem, 8vw, 5.5rem); color: var(--ivory);
+    }
+    .hero-title-bottom {
+      display: block; font-size: clamp(3rem, 8vw, 5.5rem); margin-top: 8px;
+      background: linear-gradient(90deg, #c07840 0%, #f0c8a0 50%, #c07840 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+    }
+
+    .hero-subtitle {
+      color: var(--slate-400); font-size: clamp(1rem, 2.5vw, 1.25rem);
+      max-width: 640px; margin: 0 auto 32px; font-weight: 300;
+      line-height: 1.7;
+      opacity: 0; animation: fadeInUp 0.8s ease-out 0.4s forwards;
+    }
+
+    /* Quote Block */
+    .quote-block {
+      max-width: 680px; margin: 0 auto 40px;
+      opacity: 0; animation: fadeInUp 0.8s ease-out 0.5s forwards;
+    }
+    .quote-inner {
+      position: relative; padding: 40px;
+      background: linear-gradient(135deg, rgba(192,120,64,0.1) 0%, rgba(20,30,56,0.7) 40%, rgba(192,120,64,0.06) 100%);
+      border: 1px solid rgba(192,120,64,0.3); border-radius: 20px;
+      backdrop-filter: blur(16px); overflow: hidden;
+    }
+    .quote-inner::before {
+      content: '\201C'; position: absolute; top: -10px; left: 20px;
+      font-size: 8rem; font-family: 'Playfair Display', serif;
+      color: rgba(192,120,64,0.1); line-height: 1; pointer-events: none;
+    }
+    .quote-inner::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, transparent, #c07840, #f0c8a0, #c07840, transparent);
+    }
+    .quote-text {
+      position: relative; z-index: 1; color: var(--ivory);
+      font-family: 'Playfair Display', serif; font-size: clamp(1.4rem, 3vw, 1.875rem);
+      font-style: italic; line-height: 1.5; letter-spacing: 0.02em; text-align: center;
+    }
+    .quote-divider {
+      width: 64px; height: 1px; margin: 20px auto;
+      background: linear-gradient(90deg, transparent, var(--copper), transparent);
+    }
+    .quote-author {
+      text-align: center; position: relative; z-index: 1;
+    }
+    .quote-author-name {
+      color: var(--copper-light); font-family: 'Playfair Display', serif;
+      font-size: 16px; font-weight: 600; letter-spacing: 0.05em;
+      font-style: normal;
+    }
+    .quote-author-desc {
+      color: var(--slate-400); font-size: 13px; margin-top: 8px;
+      max-width: 480px; margin-left: auto; margin-right: auto;
+      line-height: 1.6; font-weight: 300;
+    }
+
+    /* CTA Buttons */
+    .hero-cta {
+      display: flex; flex-wrap: wrap; gap: 16px;
+      justify-content: center;
+      opacity: 0; animation: fadeInUp 0.8s ease-out 0.6s forwards;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 16px 32px;
+      background: linear-gradient(135deg, var(--copper), var(--copper-light));
+      color: var(--navy-950); font-weight: 600; border-radius: 12px;
+      font-size: 18px; box-shadow: 0 8px 30px rgba(192,120,64,0.25);
+      transition: all 0.3s; animation: pulseGlow 3s ease-in-out infinite;
+    }
+    .btn-primary:hover {
+      transform: scale(1.05); box-shadow: 0 8px 40px rgba(192,120,64,0.45);
+    }
+    .btn-primary svg {
+      width: 20px; height: 20px; transition: transform 0.3s;
+    }
+    .btn-primary:hover svg { transform: translateX(4px); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 16px 32px;
+      border: 1px solid rgba(192,120,64,0.25);
+      color: var(--copper-light); border-radius: 12px;
+      font-size: 18px; transition: all 0.3s;
+    }
+    .btn-secondary:hover {
+      background: rgba(192,120,64,0.1); border-color: rgba(192,120,64,0.5);
+    }
+    .btn-secondary svg { width: 20px; height: 20px; }
+
+    /* Scroll indicator */
+    .scroll-indicator {
+      position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      opacity: 0; animation: fadeInUp 0.8s ease-out 1.5s forwards;
+    }
+    .scroll-indicator span {
+      color: var(--slate-500); font-size: 11px;
+      letter-spacing: 0.2em; text-transform: uppercase;
+    }
+    .scroll-mouse {
+      width: 24px; height: 40px; border: 2px solid var(--slate-600);
+      border-radius: 9999px; display: flex; justify-content: center; padding-top: 8px;
+    }
+    .scroll-dot {
+      width: 6px; height: 12px; background: var(--copper);
+      border-radius: 9999px; animation: bounce 1.5s infinite;
+    }
+
+    /* ══════════ Sections ══════════ */
+    .section {
+      padding: 96px 0;
+    }
+    .section-alt {
+      background: linear-gradient(180deg, #080d1a 0%, #0e1629 50%, #080d1a 100%);
+    }
+    .section-base {
+      background: linear-gradient(180deg, #0e1629 0%, #080d1a 100%);
+    }
+    .section-inner {
+      max-width: 1152px; margin: 0 auto; padding: 0 24px;
+    }
+    .section-header {
+      text-align: center; margin-bottom: 72px;
+    }
+    .section-label {
+      color: var(--copper); font-size: 13px; letter-spacing: 0.3em;
+      text-transform: uppercase; font-weight: 500;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif; color: var(--ivory);
+      font-size: clamp(2rem, 5vw, 3.5rem); margin-top: 16px; font-weight: 700;
+    }
+    .text-gradient {
+      background: linear-gradient(135deg, #c07840, #f0c8a0, #c07840);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .section-desc {
+      color: var(--slate-400); margin-top: 16px; font-size: 18px;
+      font-weight: 300; max-width: 640px; margin-left: auto; margin-right: auto;
+    }
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(192,120,64,0.3), transparent);
+    }
+
+    /* ══════════ Reveal animation ══════════ */
+    .reveal {
+      opacity: 0; transform: translateY(40px);
+      transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+    }
+    .reveal.visible {
+      opacity: 1; transform: translateY(0);
+    }
+
+    /* ══════════ Cards ══════════ */
+    .card {
+      background: linear-gradient(145deg, rgba(20,30,56,0.7), rgba(14,22,41,0.9));
+      border: 1px solid rgba(192,120,64,0.12);
+      backdrop-filter: blur(12px); border-radius: 16px;
+      transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+    }
+    .card:hover {
+      border-color: rgba(192,120,64,0.35);
+      box-shadow: 0 8px 40px rgba(192,120,64,0.08);
+      transform: translateY(-4px);
+    }
+
+    /* ══════════ Timeline ══════════ */
+    .timeline { position: relative; }
+    .timeline-line {
+      display: none; position: absolute; left: 50%; top: 0; bottom: 0;
+      width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(192,120,64,0.5) 15%, rgba(192,120,64,0.5) 85%, transparent);
+    }
+    .timeline-item {
+      display: flex; align-items: center; margin-bottom: 32px;
+    }
+    .timeline-content { width: 100%; }
+    .timeline-card { padding: 24px 32px; }
+    .timeline-year-row {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+    }
+    .timeline-year {
+      color: var(--copper); font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; font-weight: 500; letter-spacing: 0.1em;
+    }
+    .timeline-year-line {
+      width: 32px; height: 1px; background: rgba(192,120,64,0.3);
+    }
+    .timeline-card-title {
+      font-family: 'Playfair Display', serif; color: var(--ivory);
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem); font-weight: 600; margin-bottom: 12px;
+    }
+    .timeline-card-text {
+      color: var(--slate-400); line-height: 1.7; font-weight: 300; font-size: 15px;
+    }
+    .timeline-dot-wrap {
+      display: none; align-items: center; justify-content: center;
+      width: 0; position: relative; flex-shrink: 0;
+    }
+    .timeline-dot {
+      position: absolute; width: 16px; height: 16px;
+      background: var(--copper); border-radius: 50%;
+      box-shadow: 0 0 15px rgba(192,120,64,0.3); z-index: 2;
+    }
+    .timeline-dot-ring {
+      position: absolute; width: 32px; height: 32px;
+      border: 2px solid rgba(192,120,64,0.25); border-radius: 50%;
+    }
+    .timeline-spacer { display: none; width: 50%; }
+
+    @media (min-width: 769px) {
+      .timeline-line { display: block; }
+      .timeline-item { margin-bottom: 64px; }
+      .timeline-content { width: 50%; }
+      .timeline-dot-wrap { display: flex; }
+      .timeline-spacer { display: block; }
+      .timeline-item.left .timeline-content { padding-right: 64px; text-align: right; }
+      .timeline-item.left .timeline-year-row { justify-content: flex-end; }
+      .timeline-item.left .timeline-spacer { order: 2; }
+      .timeline-item.right .timeline-content { padding-left: 64px; order: 2; }
+    }
+
+    /* ══════════ Controls Grid ══════════ */
+    .controls-grid {
+      display: grid; grid-template-columns: 1fr; gap: 24px;
+    }
+    @media (min-width: 640px) { .controls-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1024px) { .controls-grid { grid-template-columns: repeat(4, 1fr); } }
+    .control-card { padding: 28px; text-align: center; height: 100%; }
+    .control-icon {
+      width: 56px; height: 56px; margin: 0 auto 20px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(192,120,64,0.2), rgba(192,120,64,0.05));
+      display: flex; align-items: center; justify-content: center;
+      color: var(--copper); transition: all 0.3s;
+    }
+    .control-card:hover .control-icon {
+      transform: scale(1.1);
+      background: linear-gradient(135deg, rgba(192,120,64,0.3), rgba(192,120,64,0.1));
+    }
+    .control-icon svg { width: 28px; height: 28px; }
+    .control-title {
+      font-family: 'Playfair Display', serif; color: var(--ivory);
+      font-size: 18px; font-weight: 600; margin-bottom: 12px;
+    }
+    .control-desc {
+      color: var(--slate-400); font-size: 14px; line-height: 1.6; font-weight: 300;
+    }
+
+    /* ══════════ VR Section ══════════ */
+    .vr-section { position: relative; overflow: hidden; }
+    .vr-glow {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 500px; height: 500px; background: rgba(192,120,64,0.05);
+      border-radius: 50%; filter: blur(60px); pointer-events: none;
+    }
+    .vr-card {
+      max-width: 800px; margin: 0 auto; padding: 64px;
+      text-align: center; position: relative; overflow: hidden; border-radius: 24px;
+    }
+    .vr-corner {
+      position: absolute; width: 80px; height: 80px;
+      border-color: rgba(192,120,64,0.2); border-style: solid; border-width: 0;
+    }
+    .vr-corner.tl { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; border-top-left-radius: 24px; }
+    .vr-corner.tr { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; border-top-right-radius: 24px; }
+    .vr-corner.bl { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; border-bottom-left-radius: 24px; }
+    .vr-corner.br { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; border-bottom-right-radius: 24px; }
+    .vr-icon {
+      width: 80px; height: 80px; margin: 0 auto 24px; border-radius: 16px;
+      background: linear-gradient(135deg, rgba(192,120,64,0.2), rgba(192,120,64,0.05));
+      display: flex; align-items: center; justify-content: center;
+    }
+    .vr-icon svg { width: 40px; height: 40px; color: var(--copper); }
+    .vr-title {
+      font-family: 'Playfair Display', serif; color: var(--ivory);
+      font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; margin-bottom: 16px;
+    }
+    .vr-desc {
+      color: var(--slate-400); font-size: 18px; margin-bottom: 40px;
+      max-width: 560px; margin-left: auto; margin-right: auto;
+      font-weight: 300; line-height: 1.6;
+    }
+    .vr-btn {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 20px 40px;
+      background: linear-gradient(135deg, var(--copper), var(--copper-light));
+      color: var(--navy-950); font-weight: 700; border-radius: 16px;
+      font-size: 20px; box-shadow: 0 8px 40px rgba(192,120,64,0.2);
+      transition: all 0.3s; animation: pulseGlow 3s ease-in-out infinite;
+    }
+    .vr-btn:hover {
+      transform: scale(1.05); box-shadow: 0 8px 50px rgba(192,120,64,0.45);
+    }
+    .vr-btn svg { width: 24px; height: 24px; }
+    .vr-btn .arrow { transition: transform 0.3s; }
+    .vr-btn:hover .arrow { transform: translateX(4px); }
+    .vr-hint { color: var(--slate-500); font-size: 13px; margin-top: 24px; }
+
+    @media (max-width: 640px) {
+      .vr-card { padding: 40px 24px; }
+    }
+
+    /* ══════════ Authors ══════════ */
+    .authors-grid {
+      display: grid; grid-template-columns: 1fr; gap: 32px;
+      max-width: 640px; margin: 0 auto;
+    }
+    @media (min-width: 640px) { .authors-grid { grid-template-columns: repeat(2, 1fr); } }
+    .author-card {
+      padding: 40px 32px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.3s;
+    }
+    .author-card:hover {
+      border-color: rgba(192,120,64,0.4);
+      box-shadow: 0 8px 40px rgba(192,120,64,0.1);
+    }
+    .author-tg-icon {
+      width: 56px; height: 56px; margin-bottom: 20px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(192,120,64,0.2), rgba(192,120,64,0.05));
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.3s;
+    }
+    .author-card:hover .author-tg-icon {
+      transform: scale(1.1);
+      background: linear-gradient(135deg, rgba(192,120,64,0.3), rgba(192,120,64,0.15));
+    }
+    .author-tg-icon svg { width: 28px; height: 28px; color: var(--copper); }
+    .author-name {
+      color: var(--ivory); font-family: 'Playfair Display', serif;
+      font-size: 20px; font-weight: 600; line-height: 1.3;
+      text-align: center; transition: color 0.3s;
+    }
+    .author-card:hover .author-name { color: var(--copper-light); }
+    .author-role {
+      color: var(--slate-500); font-size: 13px; margin-top: 8px;
+    }
+    .author-hint {
+      margin-top: 16px; display: flex; align-items: center; gap: 6px;
+      color: rgba(192,120,64,0.4); transition: color 0.3s;
+    }
+    .author-card:hover .author-hint { color: var(--copper); }
+    .author-hint span { font-size: 12px; letter-spacing: 0.08em; }
+    .author-hint svg {
+      width: 14px; height: 14px; transition: transform 0.3s;
+    }
+    .author-card:hover .author-hint svg { transform: translateX(4px); }
+
+    /* ══════════ Footer ══════════ */
+    .footer {
+      background: var(--navy-950); border-top: 1px solid rgba(192,120,64,0.1);
+      padding: 40px 0; text-align: center;
+    }
+    .footer-inner {
+      max-width: 1152px; margin: 0 auto; padding: 0 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .footer-brand {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .footer-logo {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--copper), var(--copper-light));
+      display: flex; align-items: center; justify-content: center;
+      color: var(--navy-950); font-weight: 700; font-family: 'Playfair Display', serif; font-size: 14px;
+    }
+    .footer-brand-text {
+      color: var(--copper-light); font-family: 'Playfair Display', serif;
+      letter-spacing: 0.05em;
+    }
+    .footer-copy { color: var(--slate-500); font-size: 13px; font-weight: 300; }
+    .footer-gh {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--slate-500); font-size: 13px; transition: color 0.3s;
+    }
+    .footer-gh:hover { color: var(--copper-light); }
+    .footer-gh svg { width: 20px; height: 20px; }
+
+    /* ══════════ Pattern overlay ══════════ */
+    .pattern {
+      background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23c07840' fill-opacity='0.03'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2h2v2h18v2H22v2.5L20 20.5z'/%3E%3C/g%3E%3C/svg%3E");
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="#hero" class="nav-logo">
+        <div class="nav-logo-icon">А</div>
+        <span class="nav-logo-text">Крепость Анапа</span>
+      </a>
+      <div class="nav-links">
+        <a href="#hero">Главная</a>
+        <a href="#history">История</a>
+        <a href="#controls">Управление</a>
+        <a href="#vr">VR Музей</a>
+        <a href="#authors">Авторы</a>
+      </div>
+      <button class="nav-burger" id="burger" aria-label="Меню">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+    </div>
+    <div class="nav-mobile" id="mobileMenu">
+      <a href="#hero">Главная</a>
+      <a href="#history">История</a>
+      <a href="#controls">Управление</a>
+      <a href="#vr">VR Музей</a>
+      <a href="#authors">Авторы</a>
+    </div>
+  </nav>
+
+  <header class="hero pattern" id="hero">
+    <div class="hero-orbs">
+      <div class="hero-orb hero-orb-1"></div>
+      <div class="hero-orb hero-orb-2"></div>
+      <div class="hero-ring hero-ring-1"></div>
+      <div class="hero-ring hero-ring-2"></div>
+    </div>
+
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        <span class="hero-badge-text">Виртуальная реальность</span>
+      </div>
+
+      <h1 class="hero-title">
+        <span class="hero-title-top">Крепость</span>
+        <span class="hero-title-bottom">Анапа</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Погрузитесь в историю русско-турецких войн и исследуйте легендарную крепость в виртуальной реальности
+      </p>
+
+      <div class="quote-block">
+        <div class="quote-inner">
+          <blockquote>
+            <p class="quote-text">«История — это учительница жизни»</p>
+          </blockquote>
+          <div class="quote-divider"></div>
+          <div class="quote-author">
+            <cite class="quote-author-name">Марк Туллий Цицерон</cite>
+            <p class="quote-author-desc">
+              Древнеримский оратор, философ и&nbsp;государственный деятель (106–43&nbsp;до&nbsp;н.&nbsp;э.).
+              Один из&nbsp;величайших ораторов античности, чьи труды по&nbsp;риторике и&nbsp;философии
+              стали фундаментом европейской интеллектуальной традиции.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-cta">
+        <a href="#vr" class="btn-primary">
+          <span>Войти в VR музей</span>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </a>
+        <a href="#history" class="btn-secondary">
+          <span>Узнать историю</span>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="scroll-indicator">
+      <span>Прокрутите вниз</span>
+      <div class="scroll-mouse"><div class="scroll-dot"></div></div>
+    </div>
+  </header>
+
+  <div class="divider"></div>
+
+  <section class="section section-alt pattern" id="history">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <span class="section-label">Хронология событий</span>
+        <h2 class="section-title">История <span class="text-gradient">крепости</span></h2>
+        <p class="section-desc">Крепость Анапа — ключевой форпост русско-турецких войн XVIII–XIX&nbsp;веков</p>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-line"></div>
+
+        <div class="timeline-item left reveal">
+          <div class="timeline-content">
+            <div class="timeline-card card">
+              <div class="timeline-year-row">
+                <span class="timeline-year">1781</span>
+                <span class="timeline-year-line"></span>
+              </div>
+              <h3 class="timeline-card-title">Основание крепости</h3>
+              <p class="timeline-card-text">Османская империя возвела крепость Анапа на черноморском побережье Кавказа. Крепость стала важнейшим укреплённым пунктом для контроля над регионом и опорой турецкого влияния среди горских народов.</p>
+            </div>
+          </div>
+          <div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
+          <div class="timeline-spacer"></div>
+        </div>
+
+        <div class="timeline-item right reveal">
+          <div class="timeline-content">
+            <div class="timeline-card card">
+              <div class="timeline-year-row">
+                <span class="timeline-year">1788</span>
+                <span class="timeline-year-line"></span>
+              </div>
+              <h3 class="timeline-card-title">Первый штурм</h3>
+              <p class="timeline-card-text">Во время русско-турецкой войны 1787–1791 годов войска генерал-аншефа П.&nbsp;А.&nbsp;Текели предприняли попытку взять крепость. Штурм окончился неудачей: мощные укрепления и численный гарнизон не позволили овладеть Анапой.</p>
+            </div>
+          </div>
+          <div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
+          <div class="timeline-spacer"></div>
+        </div>
+
+        <div class="timeline-item left reveal">
+          <div class="timeline-content">
+            <div class="timeline-card card">
+              <div class="timeline-year-row">
+                <span class="timeline-year">1791</span>
+                <span class="timeline-year-line"></span>
+              </div>
+              <h3 class="timeline-card-title">Взятие Гудовичем</h3>
+              <p class="timeline-card-text">22&nbsp;июня 1791&nbsp;года генерал И.&nbsp;В.&nbsp;Гудович штурмом взял крепость Анапа. Бой был ожесточённым — потери с обеих сторон были значительны. Однако по Ясскому мирному договору 1792&nbsp;года крепость была возвращена Османской империи.</p>
+            </div>
+          </div>
+          <div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
+          <div class="timeline-spacer"></div>
+        </div>
+
+        <div class="timeline-item right reveal">
+          <div class="timeline-content">
+            <div class="timeline-card card">
+              <div class="timeline-year-row">
+                <span class="timeline-year">1807–1812</span>
+                <span class="timeline-year-line"></span>
+              </div>
+              <h3 class="timeline-card-title">Война и Бухарестский мир</h3>
+              <p class="timeline-card-text">В ходе русско-турецкой войны 1806–1812 годов Анапа вновь стала объектом боевых действий. Российский флот и сухопутные силы проводили операции в районе крепости. По Бухарестскому мирному договору 1812&nbsp;года крепость осталась за Османской империей.</p>
+            </div>
+          </div>
+          <div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
+          <div class="timeline-spacer"></div>
+        </div>
+
+        <div class="timeline-item left reveal">
+          <div class="timeline-content">
+            <div class="timeline-card card">
+              <div class="timeline-year-row">
+                <span class="timeline-year">1828</span>
+                <span class="timeline-year-line"></span>
+              </div>
+              <h3 class="timeline-card-title">Окончательное взятие</h3>
+              <p class="timeline-card-text">В русско-турецкую войну 1828–1829 годов эскадра вице-адмирала А.&nbsp;С.&nbsp;Грейга и десант под командованием контр-адмирала А.&nbsp;С.&nbsp;Меншикова осадили Анапу. 12&nbsp;июня 1828&nbsp;года гарнизон капитулировал. По Адрианопольскому мирному договору 1829&nbsp;года Анапа окончательно вошла в состав Российской империи.</p>
+            </div>
+          </div>
+          <div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
+          <div class="timeline-spacer"></div>
+        </div>
+
+        <div class="timeline-item right reveal">
+          <div class="timeline-content">
+            <div class="timeline-card card">
+              <div class="timeline-year-row">
+                <span class="timeline-year">Наследие</span>
+                <span class="timeline-year-line"></span>
+              </div>
+              <h3 class="timeline-card-title">Крепость сегодня</h3>
+              <p class="timeline-card-text">Русские ворота — единственный сохранившийся фрагмент крепости — являются памятником архитектуры и главным историческим символом Анапы. Они были отреставрированы и имеют статус объекта культурного наследия.</p>
+            </div>
+          </div>
+          <div class="timeline-dot-wrap"><div class="timeline-dot"></div><div class="timeline-dot-ring"></div></div>
+          <div class="timeline-spacer"></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section class="section section-base" id="controls">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <span class="section-label">Навигация</span>
+        <h2 class="section-title">Управление <span class="text-gradient">музеем</span></h2>
+        <p class="section-desc">Выберите удобный для вас способ навигации</p>
+      </div>
+
+      <div class="controls-grid">
+        <div class="card control-card reveal">
+          <div class="control-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59"/></svg>
+          </div>
+          <h3 class="control-title">Мышь</h3>
+          <p class="control-desc">Зажмите левую кнопку мыши и перемещайте для обзора. Колёсико — приближение и отдаление.</p>
+        </div>
+
+        <div class="card control-card reveal">
+          <div class="control-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"/></svg>
+          </div>
+          <h3 class="control-title">Клавиатура</h3>
+          <p class="control-desc">W A S D или стрелки — перемещение. Пробел — подъём, Shift — спуск.</p>
+        </div>
+
+        <div class="card control-card reveal">
+          <div class="control-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/></svg>
+          </div>
+          <h3 class="control-title">Смартфон</h3>
+          <p class="control-desc">Проводите пальцем для осмотра. Двойное касание — взаимодействие с экспонатом.</p>
+        </div>
+
+        <div class="card control-card reveal">
+          <div class="control-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5V18M15 7.5V18M3 16.811V8.69c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 010 1.954l-7.108 4.061A1.125 1.125 0 013 16.811z"/></svg>
+          </div>
+          <h3 class="control-title">VR-шлем</h3>
+          <p class="control-desc">Наденьте шлем и используйте контроллеры. Наведите луч на объект и нажмите триггер.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section class="section section-alt vr-section" id="vr">
+    <div class="vr-glow"></div>
+    <div class="section-inner" style="position:relative;z-index:1;">
+      <div class="reveal">
+        <div class="card vr-card">
+          <div class="vr-corner tl"></div>
+          <div class="vr-corner tr"></div>
+          <div class="vr-corner bl"></div>
+          <div class="vr-corner br"></div>
+
+          <div class="vr-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/></svg>
+          </div>
+
+          <h2 class="vr-title">Готовы к <span class="text-gradient">путешествию?</span></h2>
+          <p class="vr-desc">Перенеситесь в XVIII–XIX века и исследуйте крепость Анапа в полном погружении. Доступно на&nbsp;всех устройствах.</p>
+
+          <a href="VR2.html" target="_blank" rel="noopener noreferrer" class="vr-btn">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+            <span>Открыть VR музей</span>
+            <svg class="arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+
+          <p class="vr-hint">Рекомендуемые браузеры: Chrome, Firefox, Edge</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section class="section section-base" id="authors">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <span class="section-label">Команда проекта</span>
+        <h2 class="section-title">Авторы <span class="text-gradient">проекта</span></h2>
+      </div>
+
+      <div class="authors-grid">
+        <a href="https://t.me/geniyzizni" target="_blank" rel="noopener noreferrer" class="card author-card reveal">
+          <div class="author-tg-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          </div>
+          <p class="author-name">Быков Артём Денисович</p>
+          <p class="author-role">Ученик 10 инженерного класса</p>
+          <div class="author-hint">
+            <span>Связаться</span>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </div>
+        </a>
+
+        <a href="https://t.me/GUBKI67city_boy" target="_blank" rel="noopener noreferrer" class="card author-card reveal">
+          <div class="author-tg-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          </div>
+          <p class="author-name">Кудрявцев Владимир Олегович</p>
+          <p class="author-role">Ученик 10 инженерного класса</p>
+          <div class="author-hint">
+            <span>Связаться</span>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo">А</div>
+        <span class="footer-brand-text">VR Музей — Крепость Анапа</span>
+      </div>
+      <p class="footer-copy">Проект учеников 10 инженерного класса · 2025</p>
+      <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="footer-gh">
+        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        <span>GitHub</span>
+      </a>
+    </div>
+  </footer>
+
+  <script>
+    /* Navbar scroll effect */
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', function() {
+      navbar.classList.toggle('scrolled', window.scrollY > 60);
+    }, { passive: true });
+
+    /* Mobile menu */
+    const burger = document.getElementById('burger');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const burgerIcon = '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>';
+    const closeIcon = '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
+    let menuOpen = false;
+
+    burger.addEventListener('click', function() {
+      menuOpen = !menuOpen;
+      mobileMenu.classList.toggle('open', menuOpen);
+      burger.innerHTML = menuOpen ? closeIcon : burgerIcon;
+    });
+
+    mobileMenu.querySelectorAll('a').forEach(function(link) {
+      link.addEventListener('click', function() {
+        menuOpen = false;
+        mobileMenu.classList.remove('open');
+        burger.innerHTML = burgerIcon;
+      });
+    });
+
+    /* Reveal on scroll (IntersectionObserver) */
+    const revealElements = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+
+    revealElements.forEach(function(el) {
+      revealObserver.observe(el);
+    });
+  </script>
+
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
